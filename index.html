@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kalité Inspection</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap');
+:root {
+  --bg:#0c0e16;--s1:#131720;--s2:#1a1f2e;--s3:#212738;
+  --bdr:rgba(255,255,255,0.07);--bdr2:rgba(255,255,255,0.13);
+  --txt:#EEF2FF;--muted:#6B7280;--muted2:#9CA3AF;
+  --blue:#1565C0;--blue2:#1976D2;--blue3:#0D47A1;
+  --green:#2E7D32;--green2:#4CAF50;
+  --red:#EF4444;--orange:#F59E0B;--accent:#60A5FA;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);min-height:100vh;}
+
+/* ── HEADER ── */
+header{background:linear-gradient(135deg,#080a12,#0d1428);border-bottom:1px solid var(--bdr);padding:0 20px;height:56px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
+.logo{display:flex;align-items:center;gap:10px;}
+.logo-ico{width:34px;height:34px;background:linear-gradient(135deg,var(--blue),var(--blue3));border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;}
+.logo h1{font-family:'Syne',sans-serif;font-size:14px;font-weight:800;}
+.logo small{font-size:10px;color:var(--muted2);display:block;}
+.hbtns{display:flex;gap:6px;align-items:center;}
+.hbtn{background:rgba(255,255,255,.05);border:1px solid var(--bdr);border-radius:7px;padding:6px 11px;font-size:11.5px;color:var(--muted2);cursor:pointer;font-family:'Syne',sans-serif;font-weight:600;transition:all .2s;}
+.hbtn:hover{background:rgba(255,255,255,.09);color:var(--txt);}
+.hbtn.on{background:rgba(96,165,250,.12);border-color:rgba(96,165,250,.25);color:var(--accent);}
+#ubadge{display:none;align-items:center;gap:6px;background:rgba(255,255,255,.04);border:1px solid var(--bdr);border-radius:20px;padding:4px 10px 4px 6px;font-size:11px;}
+.b-av{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;}
+
+/* ── PROGRESS ── */
+#progbar{display:none;background:var(--s1);border-bottom:1px solid var(--bdr);padding:0 20px;}
+.psteps{display:flex;max-width:700px;margin:0 auto;}
+.ps{flex:1;padding:10px 4px 9px;display:flex;align-items:center;gap:5px;font-size:10.5px;color:var(--muted);border-bottom:2px solid transparent;transition:all .3s;}
+.ps.on{color:var(--accent);border-color:var(--accent);}
+.ps.dn{color:var(--green2);border-color:var(--green2);}
+.ps-n{width:18px;height:18px;border-radius:50%;background:var(--s3);display:flex;align-items:center;justify-content:center;font-size:9.5px;font-weight:700;flex-shrink:0;}
+.ps.on .ps-n{background:var(--blue);color:#fff;}
+.ps.dn .ps-n{background:var(--green);color:#fff;}
+.ps span{display:none;}
+@media(min-width:460px){.ps span{display:block;}}
+
+/* ── PAGES ── */
+.pg{display:none;max-width:700px;margin:0 auto;padding:22px 16px 80px;}
+.pg.on{display:block;animation:up .28s ease;}
+@keyframes up{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── TYPOGRAPHY ── */
+.ptitle{font-family:'Syne',sans-serif;font-size:21px;font-weight:800;margin-bottom:3px;}
+.psub{font-size:13px;color:var(--muted2);margin-bottom:22px;}
+.slbl{font-family:'Syne',sans-serif;font-size:9.5px;font-weight:700;letter-spacing:1.8px;text-transform:uppercase;color:var(--accent);margin-bottom:12px;}
+
+/* ── CARDS ── */
+.card{background:var(--s1);border:1px solid var(--bdr);border-radius:15px;padding:17px;margin-bottom:13px;}
+.ch{font-family:'Syne',sans-serif;font-size:10px;font-weight:700;letter-spacing:1.1px;text-transform:uppercase;color:var(--muted);margin-bottom:13px;padding-bottom:9px;border-bottom:1px solid var(--bdr);}
+
+/* ── FIELDS ── */
+.f{margin-bottom:11px;}.f:last-child{margin-bottom:0;}
+.f label{font-size:9.5px;color:var(--muted2);text-transform:uppercase;letter-spacing:.6px;display:block;margin-bottom:4px;}
+.fv{background:rgba(255,255,255,.04);border:1px solid var(--bdr);border-radius:8px;padding:9px 11px;font-size:13px;color:var(--txt);width:100%;font-family:'DM Sans',sans-serif;outline:none;transition:border-color .2s;}
+.fv:focus{border-color:var(--blue2);}
+.fv.ded{border-color:rgba(245,158,11,.35);background:rgba(245,158,11,.05);}
+textarea.fv{resize:vertical;min-height:130px;line-height:1.65;}
+select.fv{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='rgba(255,255,255,.3)' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;padding-right:28px;cursor:pointer;}
+select.fv option{background:#1a1f2e;}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.tag{font-size:9px;background:rgba(245,158,11,.14);color:#FCD34D;border-radius:4px;padding:1px 5px;font-weight:700;}
+
+/* ── BUTTONS ── */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:11px 18px;border-radius:9px;font-family:'Syne',sans-serif;font-size:13px;font-weight:700;border:none;cursor:pointer;transition:all .2s;width:100%;}
+.btn:disabled{opacity:.35;cursor:not-allowed!important;transform:none!important;}
+.btn-b{background:linear-gradient(135deg,var(--blue),var(--blue3));color:#fff;}
+.btn-b:hover:not(:disabled){filter:brightness(1.14);transform:translateY(-1px);}
+.btn-g{background:linear-gradient(135deg,var(--green),var(--green2));color:#fff;}
+.btn-g:hover:not(:disabled){filter:brightness(1.1);transform:translateY(-1px);}
+.btn-r{background:rgba(239,68,68,.12);color:var(--red);border:1px solid rgba(239,68,68,.22);width:auto;padding:8px 13px;font-size:11.5px;}
+.btn-r:hover{background:rgba(239,68,68,.22);}
+.btn-gh{background:rgba(255,255,255,.04);color:var(--muted2);border:1px solid var(--bdr);width:auto;padding:9px 14px;font-size:12px;}
+.btn-gh:hover{background:rgba(255,255,255,.08);}
+.arow{display:flex;gap:9px;margin-top:4px;}.arow .btn-b,.arow .btn-g{flex:1;}
+
+/* ── STATUS ── */
+.st{border-radius:9px;padding:10px 13px;margin-bottom:11px;display:flex;align-items:flex-start;gap:8px;font-size:12px;line-height:1.55;}
+.st.load{background:rgba(21,101,192,.11);border:1px solid rgba(21,101,192,.22);color:#93C5FD;}
+.st.ok{background:rgba(46,125,50,.13);border:1px solid rgba(76,175,80,.28);color:#86EFAC;}
+.st.err{background:rgba(127,29,29,.28);border:1px solid rgba(239,68,68,.28);color:#FCA5A5;}
+.st.warn{background:rgba(146,64,14,.18);border:1px solid rgba(245,158,11,.22);color:#FCD34D;}
+.sp{width:12px;height:12px;border:2px solid rgba(147,197,253,.18);border-top-color:#93C5FD;border-radius:50%;animation:spin .65s linear infinite;flex-shrink:0;margin-top:1px;}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── PROFILES GRID (home) ── */
+.pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:11px;margin-bottom:18px;}
+.pcard{background:var(--s1);border:2px solid var(--bdr);border-radius:14px;padding:18px 14px;cursor:pointer;transition:all .22s;text-align:center;}
+.pcard:hover{transform:translateY(-3px);border-color:var(--bdr2);}
+.pav{width:52px;height:52px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800;color:#fff;margin:0 auto 10px;}
+.pname{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;margin-bottom:2px;}
+.pemail{font-size:10.5px;color:var(--muted2);word-break:break-all;}
+.prole{font-size:9.5px;margin-top:5px;padding:2px 7px;border-radius:9px;display:inline-block;font-weight:600;}
+.padd{background:rgba(255,255,255,.02);border:2px dashed rgba(255,255,255,.08);border-radius:14px;padding:18px 14px;cursor:pointer;transition:all .22s;text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:148px;}
+.padd:hover{border-color:rgba(96,165,250,.35);background:rgba(96,165,250,.04);}
+.padd-ico{font-size:26px;margin-bottom:7px;opacity:.45;}
+.padd-lbl{font-size:11.5px;color:var(--muted2);}
+
+/* ── TASK LOG ── */
+.tlog{display:flex;flex-direction:column;gap:5px;margin-bottom:13px;}
+.ti{display:flex;align-items:center;gap:9px;padding:9px 13px;border-radius:9px;font-size:12.5px;background:var(--s2);border:1px solid var(--bdr);transition:all .28s;}
+.ti.run{border-color:rgba(21,101,192,.32);background:rgba(21,101,192,.07);}
+.ti.dn{border-color:rgba(76,175,80,.22);background:rgba(46,125,50,.07);}
+.ti.er{border-color:rgba(239,68,68,.22);background:rgba(127,29,29,.14);}
+.ti.pend{opacity:.38;}
+.ti-ic{font-size:14px;flex-shrink:0;width:19px;text-align:center;}
+.ti-sp{width:14px;height:14px;border:2px solid rgba(147,197,253,.18);border-top-color:#93C5FD;border-radius:50%;animation:spin .65s linear infinite;flex-shrink:0;}
+.ti-nm{flex:1;font-weight:500;}
+.ti-dt{font-size:10.5px;color:var(--muted2);margin-top:1px;}
+
+/* ── SUCCESS ── */
+.sh{text-align:center;padding:18px 0 22px;}
+.sr{width:60px;height:60px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:26px;margin:0 auto 14px;box-shadow:0 0 28px rgba(76,175,80,.28);}
+.sh h2{font-family:'Syne',sans-serif;font-size:21px;font-weight:800;margin-bottom:7px;}
+.sh p{color:var(--muted2);font-size:12.5px;line-height:1.6;}
+.sumr{display:flex;gap:9px;padding:7px 0;border-bottom:1px solid var(--bdr);font-size:12px;}
+.sumk{color:var(--muted2);width:105px;flex-shrink:0;font-size:11px;}
+.dvd{height:1px;background:var(--bdr);margin:15px 0;}
+
+/* ── ADMIN LIST ── */
+.ali{display:flex;align-items:center;gap:11px;padding:12px 15px;background:var(--s2);border:1px solid var(--bdr);border-radius:11px;margin-bottom:7px;}
+.alav{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;color:#fff;flex-shrink:0;}
+.alinf{flex:1;}
+.alnm{font-weight:600;font-size:13.5px;}
+.alem{font-size:10.5px;color:var(--muted2);}
+.alact{display:flex;gap:5px;}
+
+/* ── MODAL ── */
+.mov{position:fixed;inset:0;background:rgba(0,0,0,.72);display:none;align-items:center;justify-content:center;z-index:200;padding:16px;}
+.mov.open{display:flex;}
+.modal{background:var(--s1);border:1px solid var(--bdr2);border-radius:16px;padding:20px;width:100%;max-width:400px;animation:up .2s ease;}
+.modal h3{font-family:'Syne',sans-serif;font-size:16px;font-weight:800;margin-bottom:14px;}
+.mbtns{display:flex;gap:9px;margin-top:14px;}.mbtns .btn-b{flex:1;}
+
+/* ── COLOR PICKER ── */
+.cprow{display:flex;gap:7px;flex-wrap:wrap;}
+.csw{width:26px;height:26px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:all .18s;}
+.csw.on{border-color:white;transform:scale(1.18);}
+
+/* ── SETUP BANNER ── */
+.setup-banner{background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.25);border-radius:12px;padding:14px 16px;margin-bottom:18px;font-size:12.5px;color:#FCD34D;line-height:1.6;}
+.setup-banner strong{display:block;margin-bottom:4px;font-size:13px;}
+.rep-note{background:rgba(21,101,192,.09);border:1px solid rgba(21,101,192,.18);border-radius:8px;padding:9px 12px;font-size:11.5px;color:#93C5FD;margin-bottom:12px;}
+.empty{text-align:center;padding:36px 20px;color:var(--muted);}
+.empty-ico{font-size:32px;margin-bottom:10px;opacity:.38;}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-ico">🔍</div>
+    <div><h1>Kalité Inspection</h1><small>Système automatisé</small></div>
+  </div>
+  <div class="hbtns">
+    <div id="ubadge"><div class="b-av" id="bav"></div><span id="bnm"></span></div>
+    <button class="hbtn on" onclick="nav('home')" id="hb-home">Accueil</button>
+    <button class="hbtn" onclick="nav('admin')" id="hb-admin">⚙️ Profils</button>
+  </div>
+</header>
+
+<div id="progbar">
+  <div class="psteps">
+    <div class="ps on" id="ps1"><div class="ps-n">1</div><span>Texto</span></div>
+    <div class="ps" id="ps2"><div class="ps-n">2</div><span>Vérifier</span></div>
+    <div class="ps" id="ps3"><div class="ps-n">3</div><span>Exécution</span></div>
+    <div class="ps" id="ps4"><div class="ps-n">4</div><span>Terminé</span></div>
+  </div>
+</div>
+
+<!-- PAGE HOME -->
+<div class="pg on" id="pg-home">
+  <p class="ptitle">Bonjour 👋</p>
+  <p class="psub">Sélectionne ton profil pour commencer</p>
+  <div id="sb" class="setup-banner" style="display:none">
+    <strong>⚙️ Configuration requise</strong>
+    Remplace <code>SUPABASE_URL</code> et <code>SUPABASE_ANON_KEY</code> dans le code par tes vraies clés Supabase. Voir les instructions ci-dessous.
+  </div>
+  <div class="pgrid" id="pgrid"></div>
+  <div id="no-prof" class="empty" style="display:none">
+    <div class="empty-ico">👤</div>
+    <p>Aucun profil.<br>Va dans <strong>⚙️ Profils</strong> pour ajouter des inspecteurs.</p>
+  </div>
+</div>
+
+<!-- PAGE APP -->
+<div class="pg" id="pg-app">
+
+  <div id="ap1">
+    <div class="slbl">Étape 1 — Coller le texto du client</div>
+    <div class="card">
+      <p style="font-size:12.5px;color:var(--muted2);margin-bottom:12px;line-height:1.6">Colle le mensaje texte reçu. Claude extrait tout, recherche ce qui manque sur internet, puis exécute les 6 actions automatiquement.</p>
+      <div class="f"><textarea class="fv" id="texto" placeholder="Ex:&#10;Mon nom: Joanne Olivier&#10;Courriel: joanne.olivier@hotmail.com&#10;Adresse du bâtiment: 1512 40e avenue Pointe-aux-Trembles H1A3G8&#10;Mon adresse: 70 boulevard Poliquin, Sorel-Tracy&#10;Rendez-vous mardi 9 juin 10h30 AM. Prix: 550$"></textarea></div>
+      <div class="rep-note" id="repnote">💼 Représentant : <strong id="repnm">—</strong></div>
+      <div id="st1"></div>
+      <button class="btn btn-b" id="btnA" onclick="doAnalyse()">✨ Analyser le texto</button>
+    </div>
+  </div>
+
+  <div id="ap2" style="display:none">
+    <div class="slbl">Étape 2 — Vérifier les informations</div>
+    <div id="winf" class="st warn" style="display:none"><span>⚠️</span><span id="wtxt"></span></div>
+    <div class="card">
+      <div class="ch">👤 Acheteur</div>
+      <div class="f"><label>Nom acheteur 1 *</label><input class="fv" id="f1" type="text"></div>
+      <div class="f"><label>Nom acheteur 2</label><input class="fv" id="f2" type="text" placeholder="N/A"></div>
+      <div class="g2">
+        <div class="f"><label>Téléphone</label><input class="fv" id="f3" type="text"></div>
+        <div class="f"><label>Courriel *</label><input class="fv" id="f4" type="email"></div>
+      </div>
+      <div class="g2">
+        <div class="f"><label>Prénom représentant</label><input class="fv" id="f5" type="text"></div>
+        <div class="f"><label>Nom représentant</label><input class="fv" id="f6" type="text"></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="ch">🏠 Domicile du client</div>
+      <div class="f"><label>Adresse complète</label><input class="fv" id="f7" type="text"></div>
+      <div class="g2">
+        <div class="f"><label>No civique</label><input class="fv" id="f8" type="text"></div>
+        <div class="f"><label>Rue</label><input class="fv" id="f9" type="text"></div>
+      </div>
+      <div class="g2">
+        <div class="f"><label>Ville</label><input class="fv" id="f10" type="text"></div>
+        <div class="f"><label>Code postal <span id="tg1" class="tag" style="display:none">DÉDUIT</span></label><input class="fv" id="f11" type="text"></div>
+      </div>
+      <div class="f"><label>No. Appartement</label><input class="fv" id="f12" type="text" placeholder="N/A"></div>
+    </div>
+    <div class="card">
+      <div class="ch">🏢 Bâtiment à inspecter</div>
+      <div class="f"><label>Adresse complète *</label><input class="fv" id="f13" type="text"></div>
+      <div class="g2">
+        <div class="f"><label>No civique</label><input class="fv" id="f14" type="text"></div>
+        <div class="f"><label>Rue</label><input class="fv" id="f15" type="text"></div>
+      </div>
+      <div class="g2">
+        <div class="f"><label>Ville</label><input class="fv" id="f16" type="text"></div>
+        <div class="f"><label>Code postal <span id="tg2" class="tag" style="display:none">DÉDUIT</span></label><input class="fv" id="f17" type="text"></div>
+      </div>
+      <div class="f"><label>No. Appartement</label><input class="fv" id="f18" type="text" placeholder="N/A"></div>
+    </div>
+    <div class="card">
+      <div class="ch">📅 Détails de l'inspection</div>
+      <div class="g2">
+        <div class="f"><label>Jour</label><input class="fv" id="f19" type="text" placeholder="ex: 9"></div>
+        <div class="f"><label>Mois</label>
+          <select class="fv" id="f20">
+            <option value="">— Sélectionner —</option>
+            <option>Janvier</option><option>Février</option><option>Mars</option><option>Avril</option>
+            <option>Mai</option><option>Juin</option><option>Juillet</option><option>Août</option>
+            <option>Septembre</option><option>Octobre</option><option>Novembre</option><option>Décembre</option>
+          </select>
+        </div>
+      </div>
+      <div class="g2">
+        <div class="f"><label>Année</label><input class="fv" id="f21" type="text" placeholder="2026"></div>
+        <div class="f"><label>Heure (HH:MM)</label><input class="fv" id="f22" type="text" placeholder="10:30"></div>
+      </div>
+      <div class="g2">
+        <div class="f"><label>AM/PM</label><select class="fv" id="f23"><option value="">—</option><option>AM</option><option>PM</option></select></div>
+        <div class="f"><label>Prix ($)</label><input class="fv" id="f24" type="text" placeholder="ex: 550"></div>
+      </div>
+      <div class="f"><label>Année construction <span id="tg3" class="tag" style="display:none">DÉDUIT</span></label><input class="fv" id="f25" type="text" placeholder="ex: 1974"></div>
+    </div>
+    <div id="st2"></div>
+    <div class="arow">
+      <button class="btn btn-gh" onclick="goBack()">← Retour</button>
+      <button class="btn btn-g" id="btnL" onclick="lancerTout()">🚀 Lancer toutes les actions</button>
+    </div>
+  </div>
+
+  <div id="ap3" style="display:none">
+    <div class="slbl">Étape 3 — Exécution en cours</div>
+    <div class="card">
+      <p style="font-size:12px;color:var(--muted2);margin-bottom:14px;line-height:1.6">Ne ferme pas cette fenêtre.</p>
+      <div class="tlog" id="tlog"></div>
+      <div id="st3"></div>
+    </div>
+  </div>
+
+  <div id="ap4" style="display:none">
+    <div class="card">
+      <div class="sh">
+        <div class="sr" id="sring">✓</div>
+        <h2>Tout est complété !</h2>
+        <p>Les 6 actions ont été exécutées.<br>Le client a reçu son email. 🎉</p>
+      </div>
+      <div class="dvd"></div>
+      <div id="summ"></div>
+      <div style="margin-top:14px"><button class="btn btn-b" onclick="resetApp()">+ Nouveau client</button></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- PAGE ADMIN -->
+<div class="pg" id="pg-admin">
+  <p class="ptitle">⚙️ Gestion des profils</p>
+  <p class="psub">Ajouter, modifier ou supprimer des inspecteurs</p>
+  <div class="card">
+    <div class="ch">Inspecteurs actifs</div>
+    <div id="alist"></div>
+    <div style="margin-top:13px"><button class="btn btn-b" onclick="openAdd()">+ Ajouter un inspecteur</button></div>
+  </div>
+  <div class="card" style="border-color:rgba(245,158,11,.18)">
+    <div class="ch" style="color:var(--orange)">⚠️ Zone danger</div>
+    <p style="font-size:12px;color:var(--muted2);margin-bottom:11px;line-height:1.6">Supprimer tous les profils de la base de données. Irréversible.</p>
+    <button class="btn btn-r" onclick="wipeAll()">🗑 Supprimer tous les profils</button>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div class="mov" id="mov" onclick="closeOut(event)">
+  <div class="modal">
+    <h3 id="mtitle">Ajouter un inspecteur</h3>
+    <div class="f"><label>Prénom *</label><input class="fv" id="mp" type="text" placeholder="Marc-Antoine"></div>
+    <div class="f"><label>Nom *</label><input class="fv" id="mn" type="text" placeholder="Mondoux"></div>
+    <div class="f"><label>Courriel professionnel *</label><input class="fv" id="me" type="email" placeholder="nom@kaliteinspection.ca"></div>
+    <div class="f"><label>Rôle</label>
+      <select class="fv" id="mr">
+        <option>Inspecteur</option>
+        <option>Inspecteur senior</option>
+        <option>Administrateur</option>
+      </select>
+    </div>
+    <div class="f"><label>Couleur du profil</label><div class="cprow" id="cpick"></div></div>
+    <div id="mst"></div>
+    <div class="mbtns">
+      <button class="btn btn-gh" onclick="closeM()">Annuler</button>
+      <button class="btn btn-b" id="msave" onclick="saveProf()">💾 Sauvegarder</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════════════════════════
+// CONFIGURATION — Remplace ces deux valeurs par les tiennes
+// depuis supabase.com → ton projet → Settings → API
+// ════════════════════════════════════════════════════════
+const SUPABASE_URL  = 'https://ptbanxacmtvifjucvwzs.supabase.co';
+const SUPABASE_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB0YmFueGFjbXR2aWZqdWN2d3pzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1OTIyMzEsImV4cCI6MjA5NjE2ODIzMX0.ABLtlsGAuo9nuOCrwXcu_zb_sGKZ0kQCcdkf5ql_mmA';
+// ════════════════════════════════════════════════════════
+
+const CLAUDE_API = 'https://api.anthropic.com/v1/messages';
+const MCP = [
+  {type:'url',url:'https://mcp.zapier.com/api/v1/connect',name:'zapier-mcp'},
+  {type:'url',url:'https://gmailmcp.googleapis.com/mcp/v1',name:'gmail-mcp'},
+  {type:'url',url:'https://calendarmcp.googleapis.com/mcp/v1',name:'calendar-mcp'}
+];
+const COLORS = ['#1565C0','#2E7D32','#6A1B9A','#AD1457','#E65100','#00838F','#37474F','#558B2F','#4527A0','#00695C'];
+const MOIS_MAP = {Janvier:'01',Février:'02',Mars:'03',Avril:'04',Mai:'05',Juin:'06',Juillet:'07',Août:'08',Septembre:'09',Octobre:'10',Novembre:'11',Décembre:'12'};
+
+let sb = null;
+let profs = [];
+let me = null;
+let editId = null;
+let selColor = COLORS[0];
+let D = {}, R = {};
+
+// ── SUPABASE INIT ──
+function initSB(){
+  if(SUPABASE_URL==='https://ptbanxacmtvifjucvwzs.supabase.co'){
+    document.getElementById('sb').style.display='block';
+    useFallback(); return;
+  }
+  try{
+    sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    loadProfs();
+  }catch(e){ useFallback(); }
+}
+
+// Fallback localStorage si Supabase pas encore configuré
+function useFallback(){
+  try{ profs = JSON.parse(localStorage.getItem('ki_p')||'[]'); }catch(e){ profs=[]; }
+  if(!profs.length) profs=[{id:'p1',prenom:'Marc-Antoine',nom:'Mondoux',email:'mamondoux@kaliteinspection.ca',role:'Inspecteur senior',color:'#1565C0'}];
+  renderHome(); renderAdmin();
+}
+
+async function loadProfs(){
+  try{
+    const {data,error} = await sb.from('profiles').select('*').order('created_at');
+    if(error) throw error;
+    profs = data||[];
+    if(!profs.length){
+      // Créer le profil par défaut Marc-Antoine
+      const def = {prenom:'Marc-Antoine',nom:'Mondoux',email:'mamondoux@kaliteinspection.ca',role:'Inspecteur senior',color:'#1565C0'};
+      const {data:nd} = await sb.from('profiles').insert([def]).select();
+      profs = nd||[];
+    }
+  }catch(e){ useFallback(); return; }
+  renderHome(); renderAdmin();
+}
+
+async function saveToSB(prof){
+  if(!sb){ profs=profs.filter(p=>p.id!==prof.id); profs.push(prof); localStorage.setItem('ki_p',JSON.stringify(profs)); return prof; }
+  if(prof.id){
+    const {data} = await sb.from('profiles').update({prenom:prof.prenom,nom:prof.nom,email:prof.email,role:prof.role,color:prof.color}).eq('id',prof.id).select();
+    return data?.[0]||prof;
+  } else {
+    const {data} = await sb.from('profiles').insert([{prenom:prof.prenom,nom:prof.nom,email:prof.email,role:prof.role,color:prof.color}]).select();
+    return data?.[0]||{...prof,id:'p'+Date.now()};
+  }
+}
+
+async function deleteFromSB(id){
+  if(!sb){ profs=profs.filter(p=>p.id!==id); localStorage.setItem('ki_p',JSON.stringify(profs)); return; }
+  await sb.from('profiles').delete().eq('id',id);
+}
+
+// ── NAVIGATION ──
+function nav(page){
+  document.querySelectorAll('.pg').forEach(p=>p.classList.remove('on'));
+  document.getElementById('pg-'+page).classList.add('on');
+  document.querySelectorAll('.hbtn').forEach(b=>b.classList.remove('on'));
+  const hb=document.getElementById('hb-'+page); if(hb) hb.classList.add('on');
+  document.getElementById('progbar').style.display = page==='app'?'block':'none';
+  window.scrollTo({top:0,behavior:'smooth'});
+  if(page==='home') renderHome();
+  if(page==='admin'){ loadProfs().then(()=>renderAdmin()); }
+}
+
+// ── RENDER HOME ──
+function inits(p){ return (p.prenom[0]+(p.nom?.[0]||'')).toUpperCase(); }
+function renderHome(){
+  const g=document.getElementById('pgrid');
+  const nm=document.getElementById('no-prof');
+  if(!profs.length){ g.innerHTML=''; nm.style.display='block'; return; }
+  nm.style.display='none';
+  g.innerHTML = profs.map(p=>`
+    <div class="pcard" onclick="pick('${p.id}')" style="border-color:${p.color}25">
+      <div class="pav" style="background:${p.color}">${inits(p)}</div>
+      <div class="pname">${p.prenom} ${p.nom}</div>
+      <div class="pemail">${p.email}</div>
+      <div class="prole" style="background:${p.color}20;color:${p.color}">${p.role}</div>
+    </div>`).join('') +
+    `<div class="padd" onclick="nav('admin')"><div class="padd-ico">+</div><div class="padd-lbl">Ajouter un inspecteur</div></div>`;
+}
+
+function pick(id){
+  me = profs.find(p=>p.id===id);
+  if(!me) return;
+  document.getElementById('ubadge').style.display='flex';
+  document.getElementById('bav').style.background=me.color;
+  document.getElementById('bav').textContent=inits(me);
+  document.getElementById('bnm').textContent=me.prenom;
+  document.getElementById('repnm').textContent=`${me.prenom} ${me.nom} — ${me.email}`;
+  document.getElementById('sring').style.background=me.color;
+  document.getElementById('f5').value=me.prenom;
+  document.getElementById('f6').value=me.nom;
+  nav('app'); resetApp();
+}
+
+// ── RENDER ADMIN ──
+function renderAdmin(){
+  const l=document.getElementById('alist');
+  if(!profs.length){ l.innerHTML='<div class="empty"><div class="empty-ico">👤</div><p>Aucun profil — ajoutes-en un !</p></div>'; return; }
+  l.innerHTML = profs.map(p=>`
+    <div class="ali">
+      <div class="alav" style="background:${p.color}">${inits(p)}</div>
+      <div class="alinf">
+        <div class="alnm">${p.prenom} ${p.nom}</div>
+        <div class="alem">${p.email} · ${p.role}</div>
+      </div>
+      <div class="alact">
+        <button class="btn btn-gh" style="padding:6px 10px;font-size:11px" onclick="openEdit('${p.id}')">✏️</button>
+        <button class="btn btn-r" style="padding:6px 10px" onclick="delProf('${p.id}')">🗑</button>
+      </div>
+    </div>`).join('');
+}
+
+// ── COLOR PICKER ──
+function renderCP(sel){
+  document.getElementById('cpick').innerHTML = COLORS.map(c=>`
+    <div class="csw${c===sel?' on':''}" style="background:${c}" onclick="pickC('${c}')" data-c="${c}"></div>`).join('');
+  selColor=sel||COLORS[0];
+}
+function pickC(c){ selColor=c; document.querySelectorAll('.csw').forEach(s=>s.classList.toggle('on',s.dataset.c===c)); }
+
+// ── MODAL ──
+function openAdd(){ editId=null; document.getElementById('mtitle').textContent='Ajouter un inspecteur'; ['mp','mn','me'].forEach(id=>document.getElementById(id).value=''); document.getElementById('mr').value='Inspecteur'; document.getElementById('msave').textContent='💾 Ajouter'; renderCP(COLORS[Math.floor(Math.random()*COLORS.length)]); showSt('mst','',''); document.getElementById('mov').classList.add('open'); }
+function openEdit(id){ const p=profs.find(x=>x.id===id); if(!p)return; editId=id; document.getElementById('mtitle').textContent='Modifier le profil'; document.getElementById('mp').value=p.prenom; document.getElementById('mn').value=p.nom; document.getElementById('me').value=p.email; document.getElementById('mr').value=p.role; document.getElementById('msave').textContent='💾 Sauvegarder'; renderCP(p.color); showSt('mst','',''); document.getElementById('mov').classList.add('open'); }
+function closeM(){ document.getElementById('mov').classList.remove('open'); }
+function closeOut(e){ if(e.target===document.getElementById('mov')) closeM(); }
+
+async function saveProf(){
+  const p=(v=>v.trim())(document.getElementById('mp').value);
+  const n=(v=>v.trim())(document.getElementById('mn').value);
+  const e=(v=>v.trim())(document.getElementById('me').value);
+  const r=document.getElementById('mr').value;
+  if(!p||!n||!e){ showSt('mst','err','Tous les champs sont requis.'); return; }
+  if(!e.includes('@')){ showSt('mst','err','Courriel invalide.'); return; }
+  document.getElementById('msave').disabled=true;
+  showSt('mst','load','Sauvegarde...');
+  try{
+    const saved = await saveToSB({id:editId||null,prenom:p,nom:n,email:e,role:r,color:selColor});
+    if(editId){ const i=profs.findIndex(x=>x.id===editId); if(i>-1) profs[i]=saved; if(me&&me.id===editId){ me=saved; document.getElementById('bav').style.background=selColor; document.getElementById('bnm').textContent=p; document.getElementById('repnm').textContent=`${p} ${n} — ${e}`; document.getElementById('f5').value=p; document.getElementById('f6').value=n; } }
+    else { await loadProfs(); }
+    renderAdmin(); renderHome(); closeM();
+  }catch(err){ showSt('mst','err','Erreur : '+err.message); }
+  document.getElementById('msave').disabled=false;
+}
+
+async function delProf(id){
+  if(!confirm('Supprimer ce profil ?')) return;
+  await deleteFromSB(id);
+  profs=profs.filter(p=>p.id!==id);
+  if(me&&me.id===id){ me=null; document.getElementById('ubadge').style.display='none'; }
+  renderAdmin(); renderHome();
+}
+
+async function wipeAll(){
+  if(!confirm('Supprimer TOUS les profils ? Irréversible.')) return;
+  if(sb) await sb.from('profiles').delete().neq('id','00000000-0000-0000-0000-000000000000');
+  localStorage.removeItem('ki_p'); profs=[]; me=null;
+  document.getElementById('ubadge').style.display='none';
+  renderAdmin(); renderHome();
+}
+
+// ── APP STEP ──
+function setStep(n){
+  [1,2,3,4].forEach(i=>{
+    const ps=document.getElementById('ps'+i);
+    ps.className='ps'+(i<n?' dn':i===n?' on':'');
+    document.getElementById('ap'+i).style.display=i===n?'block':'none';
+  });
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+// ── UTILITIES ──
+const gv = id => (document.getElementById(id)?.value||'').trim();
+const sv = (id,v) => { const el=document.getElementById(id); if(el) el.value=v||''; };
+function showSt(id,type,html){
+  const el=document.getElementById(id); if(!el)return;
+  if(!html){el.innerHTML='';return;}
+  const ico={load:'<div class="sp"></div>',ok:'✅',err:'❌',warn:'⚠️'};
+  el.innerHTML=`<div class="st ${type}">${ico[type]||''}<span>${html}</span></div>`;
+}
+function goBack(){ setStep(1); showSt('st2','',''); document.getElementById('btnA').disabled=false; }
+
+// ── ANALYSE TEXTO ──
+async function doAnalyse(){
+  if(!me){ showSt('st1','err','Sélectionne d\'abord un profil depuis l\'accueil !'); return; }
+  const txt=document.getElementById('texto').value.trim();
+  if(!txt){ showSt('st1','err','Colle d\'abord le texto du client !'); return; }
+  document.getElementById('btnA').disabled=true;
+  showSt('st1','load','Claude analyse le texto et recherche les informations manquantes...');
+  const prompt=`Tu es l'assistant de ${me.prenom} ${me.nom}, inspecteur chez Kalité Inspection (Québec).
+Analyse ce texto et extrais toutes les infos. Utilise web_search si nécessaire pour trouver codes postaux ou années de construction manquants.
+"bâtiment visé" = propriété À INSPECTER. "adresse client" = domicile du client.
+TEXTO:\n${txt}
+Retourne UNIQUEMENT ce JSON (rien d'autre):
+{"acheteur1":"","acheteur2":"N/A","telephone":"","email":"","clientAdresse":"","clientNum":"","clientRue":"","clientVille":"","clientCP":"","clientApp":"N/A","batAdresse":"","batNum":"","batRue":"","batVille":"","batCP":"","batApp":"N/A","jour":"","mois":"mois français ex:Juin","annee":"2026","heure":"HH:MM","ampm":"AM ou PM","prix":"chiffre seulement","ageConstruction":"","inferredFields":[]}`;
+  try{
+    const res=await fetch(CLAUDE_API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1200,tools:[{type:'web_search_20250305',name:'web_search'}],messages:[{role:'user',content:prompt}]})});
+    const data=await res.json();
+    const txt2=(data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('');
+    const m=txt2.match(/\{[\s\S]*\}/); if(!m) throw new Error('JSON introuvable');
+    D=JSON.parse(m[0]); fillF(D); showSt('st1','',''); setStep(2);
+    if(D.inferredFields?.length){ document.getElementById('winf').style.display='flex'; document.getElementById('wtxt').textContent='Champs déduits/recherchés : '+D.inferredFields.join(', ')+'. Vérifiez avant de soumettre.'; }
+  }catch(e){ showSt('st1','err','Erreur : '+e.message); document.getElementById('btnA').disabled=false; }
+}
+
+function fillF(d){
+  const inf=(d.inferredFields||[]).map(x=>x.toLowerCase());
+  const ii=(...k)=>k.some(key=>inf.some(i=>i.includes(key)));
+  sv('f1',d.acheteur1); sv('f2',d.acheteur2); sv('f3',d.telephone); sv('f4',d.email);
+  sv('f5',me?.prenom||''); sv('f6',me?.nom||'');
+  sv('f7',d.clientAdresse); sv('f8',d.clientNum); sv('f9',d.clientRue); sv('f10',d.clientVille); sv('f11',d.clientCP); sv('f12',d.clientApp||'N/A');
+  sv('f13',d.batAdresse); sv('f14',d.batNum); sv('f15',d.batRue); sv('f16',d.batVille); sv('f17',d.batCP); sv('f18',d.batApp||'N/A');
+  sv('f19',d.jour); if(d.mois) document.getElementById('f20').value=d.mois;
+  sv('f21',d.annee); sv('f22',d.heure); if(d.ampm) document.getElementById('f23').value=d.ampm;
+  sv('f24',d.prix); sv('f25',d.ageConstruction);
+  if(ii('postal','code')) document.getElementById('tg2').style.display='inline';
+  if(ii('construction','âge')) document.getElementById('tg3').style.display='inline';
+}
+
+// ── LANCER TOUT ──
+async function lancerTout(){
+  D={...D,a1:gv('f1'),a2:gv('f2'),tel:gv('f3'),email:gv('f4'),rp:gv('f5'),rn:gv('f6'),
+     ca:gv('f7'),cn:gv('f8'),cr:gv('f9'),cv:gv('f10'),cc:gv('f11'),capp:gv('f12'),
+     ba:gv('f13'),bn:gv('f14'),br:gv('f15'),bv:gv('f16'),bc:gv('f17'),bapp:gv('f18'),
+     jour:gv('f19'),mois:gv('f20'),annee:gv('f21'),heure:gv('f22'),ampm:gv('f23'),prix:gv('f24'),age:gv('f25')};
+  if(!D.email){ showSt('st2','err','Le courriel du client est requis !'); return; }
+  if(!D.ba){ showSt('st2','err','L\'adresse du bâtiment est requise !'); return; }
+  document.getElementById('btnL').disabled=true;
+  setStep(3);
+  const mn=MOIS_MAP[D.mois]||'01', jj=(D.jour||'01').padStart(2,'0'), aa=D.annee||'2026';
+  let [h,m]=(D.heure||'10:00').split(':').map(Number);
+  if(D.ampm==='PM'&&h<12)h+=12; if(D.ampm==='AM'&&h===12)h=0;
+  const hh=String(h).padStart(2,'0'), mm=String(m||0).padStart(2,'0');
+  D.ds=`${aa}-${mn}-${jj}T${hh}:${mm}:00`;
+  D.de=`${aa}-${mn}-${jj}T${String((h+4)%24).padStart(2,'0')}:${mm}:00`;
+  D.dsp=`${D.jour} ${D.mois} ${aa} à ${D.heure} ${D.ampm}`;
+  D.repEmail=me?.email||'mamondoux@kaliteinspection.ca';
+  const TASKS=[{id:'t1',ic:'📅',nm:'Google Calendar',sb:'Créer le rendez-vous'},{id:'t2',ic:'📁',nm:'Google Drive',sb:'Créer le dossier client'},{id:'t3',ic:'👤',nm:'QuickBooks',sb:'Créer le client'},{id:'t4',ic:'📄',nm:'QuickBooks',sb:'Créer la facture'},{id:'t5',ic:'📋',nm:'PDF Convention',sb:'Générer la convention'},{id:'t6',ic:'📧',nm:'Gmail',sb:'Envoyer l\'email client'}];
+  document.getElementById('tlog').innerHTML=TASKS.map(t=>`<div class="ti pend" id="${t.id}"><div class="ti-ic">${t.ic}</div><div style="flex:1"><div class="ti-nm">${t.nm}</div><div class="ti-dt">${t.sb}</div></div><div style="font-size:10.5px;color:var(--muted)">En attente</div></div>`).join('');
+  R={};
+  await runCal(); await runDrive(); await runQBC(); await runQBI(); await runPDF(); await runMail();
+}
+
+const tRun=(id)=>{const el=document.getElementById(id);el.className='ti run';el.querySelector('.ti-ic').innerHTML='<div class="ti-sp"></div>';el.lastElementChild.textContent='En cours...';};
+const tDone=(id,m)=>{const el=document.getElementById(id);el.className='ti dn';el.querySelector('.ti-ic').textContent='✓';el.lastElementChild.textContent=m||'Complété';};
+const tErr=(id,m)=>{const el=document.getElementById(id);el.className='ti er';el.querySelector('.ti-ic').textContent='✗';el.lastElementChild.textContent=m||'Erreur';};
+
+async function callC(prompt, mcps=[]){
+  const body={model:'claude-sonnet-4-20250514',max_tokens:1000,messages:[{role:'user',content:prompt}]};
+  if(mcps.length) body.mcp_servers=mcps;
+  const res=await fetch(CLAUDE_API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  const data=await res.json();
+  if(data.error) throw new Error(data.error.message);
+  return (data.content||[]).map(b=>b.type==='text'?b.text:(b.content?.[0]?.text||'')).join('\n');
+}
+
+async function runCal(){ tRun('t1'); try{ await callC(`Crée un événement Google Calendar:\n- Titre: "Rendez-vous confirmé : inspection pré achat"\n- Début: ${D.ds} timezone America/Toronto\n- Fin: ${D.de} timezone America/Toronto\n- Lieu: ${D.ba}\n- Participant: ${D.email}\n- Couleur: 7\n- Description: "Inspection — ${D.a1}. Prix: ${D.prix}$. Représentant: ${D.rp} ${D.rn}"\n- Calendrier: ${D.repEmail}`,MCP.filter(s=>s.name==='calendar-mcp')); R.cal=true; tDone('t1',D.dsp); }catch(e){ tErr('t1',e.message.substring(0,40)); } }
+
+async function runDrive(){ tRun('t2'); try{ const r=await callC(`Zapier Google Drive action folder_v2 — créer un dossier:\n- Nom: "${D.ba}"\n- Dossier parent ID: "12Of-vY4w-PEuq4HoWSjmFHIIYANyUAFR"\nRetourne l'ID du dossier.`,MCP.filter(s=>s.name==='zapier-mcp')); const m=r.match(/[a-zA-Z0-9_-]{25,50}/); R.fid=m?m[0]:null; tDone('t2',D.ba.substring(0,26)+'...'); }catch(e){ tErr('t2',e.message.substring(0,40)); } }
+
+async function runQBC(){ tRun('t3'); try{ const r=await callC(`Zapier QuickBooks Online action customer — créer un client:\n- Nom: "${D.a1}"\n- Email: "${D.email}"\n- Téléphone: "${D.tel}"\n- Adresse: "${D.ca}"\nRetourne l'ID du client.`,MCP.filter(s=>s.name==='zapier-mcp')); const m=r.match(/\b\d{3,12}\b/); R.cid=m?m[0]:null; tDone('t3',D.a1); }catch(e){ tErr('t3',e.message.substring(0,40)); } }
+
+async function runQBI(){ tRun('t4'); try{ const r=await callC(`Zapier QuickBooks Online action new_invoice_v4 — créer une facture:\n- Client: ${R.cid||''} (email: ${D.email})\n- Date: ${D.ds.split('T')[0]}\n- Service: "Inspection de Bâtiment résidentiel"\n- Quantité: 1, Prix: ${D.prix||'0'}$\n- Taxe: GST/QST QC 9.975%, TaxExcluded\n- CC: ${D.repEmail}\nRetourne l'URL PDF.`,MCP.filter(s=>s.name==='zapier-mcp')); const m=r.match(/https?:\/\/[^\s"')]+/i); R.inv=m?m[0]:null; tDone('t4',D.prix?D.prix+'$ + taxes':'Créée'); }catch(e){ tErr('t4',e.message.substring(0,40)); } }
+
+async function runPDF(){ tRun('t5'); try{ const r=await callC(`Zapier PDFco — remplir convention de service:\n- PDF: https://drive.google.com/file/d/1djs1dO9NiO1lmM0pVOymXR9mewHbBf6B/view\n- Acheteur 1: ${D.a1}, Acheteur 2: ${D.a2||'N/A'}\n- Client: ${D.cn} ${D.cr}, ${D.capp||'N/A'}, ${D.cv} ${D.cc}\n- Représentant: ${D.rp} ${D.rn}\n- Bâtiment: ${D.bn} ${D.br}, ${D.bapp||'N/A'}, ${D.bv} ${D.bc}, construction: ${D.age||'N/A'}\n- Inspection: ${D.jour} ${D.mois} ${D.annee}, ${D.heure} ${D.ampm}, ${D.prix}$\n- Nom doc: "${D.ba}"\nRetourne l'URL du PDF.`,MCP.filter(s=>s.name==='zapier-mcp')); const m=r.match(/https?:\/\/[^\s"')]+/i); R.pdf=m?m[0]:null; tDone('t5','Générée'); }catch(e){ tErr('t5',e.message.substring(0,40)); } }
+
+async function runMail(){ tRun('t6'); try{
+  const pn=D.a1?.split(' ')[0]||'';
+  const html=`<div style="font-family:Arial,sans-serif;max-width:600px;color:#333;line-height:1.6"><p>Bonjour ${pn},</p><p>Veuillez accuser réception des documents.</p><p>Merci pour votre demande d'inspection. Vous trouverez ci-joint :</p><ol><li>La <b>convention de service</b> (signée lors de l'inspection) ;</li><li>La <b>facture</b>, payable le jour de l'inspection ;</li><li>Les <b>normes de pratique</b> des inspecteurs IBC.</li></ol><p>⚠️ Frais de <b>100 $</b> si annulation à moins de 24 h.</p><p>📅 <b>Rendez-vous :</b> ${D.dsp}<br>📍 <b>Adresse :</b> ${D.ba}</p><p>Paiement par <b>Interac, débit ou crédit</b>.</p><p>Au plaisir !<br><br><b>${D.rp} ${D.rn}</b><br><span style="color:#666">Inspecteur certifié · Kalité Inspection</span><br><a href="mailto:${D.repEmail}" style="color:#1565C0">${D.repEmail}</a></p></div>`;
+  await callC(`Gmail MCP — envoyer email:\nÀ: ${D.email}\nCC: ${D.repEmail}\nSujet: "Rendez-vous confirmé : inspection pré achat"\nHTML: ${html}\n${R.pdf?'PJ convention: '+R.pdf:''}\n${R.inv?'PJ facture: '+R.inv:''}\nLabel: IMPORTANT`,MCP.filter(s=>s.name==='gmail-mcp'));
+  R.mail=true; tDone('t6',D.email);
+  setTimeout(()=>{ buildSum(); setStep(4); },700);
+}catch(e){ tErr('t6',e.message.substring(0,40)); showSt('st3','warn','Email non envoyé auto. Les autres actions sont complétées — envoie manuellement depuis Gmail.'); } }
+
+function buildSum(){
+  const ck=v=>v?'✅':'⚠️ Vérifier';
+  const rows=[['Client',D.a1+(D.a2&&D.a2!=='N/A'?' & '+D.a2:'')],['Courriel',D.email],['Téléphone',D.tel],['Bâtiment',D.ba],['Date',D.dsp],['Prix',D.prix?D.prix+'$':'À confirmer'],['Représentant',D.rp+' '+D.rn],['Calendrier',ck(R.cal)],['Drive',R.fid?'✅ Dossier créé':'⚠️ Vérifier'],['QuickBooks',R.cid?'✅ Client #'+R.cid:'⚠️ Vérifier'],['Facture',ck(R.inv)],['Convention',ck(R.pdf)],['Email',ck(R.mail)]];
+  document.getElementById('summ').innerHTML=rows.map(([k,v])=>`<div class="sumr"><span class="sumk">${k}</span><span>${v||'—'}</span></div>`).join('');
+}
+
+function resetApp(){
+  D={}; R={};
+  document.getElementById('texto').value='';
+  document.getElementById('winf').style.display='none';
+  ['tg1','tg2','tg3'].forEach(id=>{const el=document.getElementById(id);if(el)el.style.display='none';});
+  document.getElementById('btnA').disabled=false;
+  if(document.getElementById('btnL')) document.getElementById('btnL').disabled=false;
+  showSt('st1','',''); showSt('st2','','');
+  if(me){ sv('f5',me.prenom); sv('f6',me.nom); }
+  setStep(1);
+}
+
+// ── INIT ──
+initSB();
+renderCP(COLORS[0]);
+</script>
+</body>
+</html>
