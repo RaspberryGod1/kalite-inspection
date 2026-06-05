@@ -3,6 +3,26 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!--
+  CSP : restreint les connexions réseau aux seuls domaines nécessaires.
+  'unsafe-inline' est requis pour les scripts inline dans un fichier HTML unique.
+  frame-ancestors 'none' bloque le clickjacking.
+  base-uri 'none' bloque l'injection de balise <base>.
+-->
+<meta http-equiv="Content-Security-Policy" content="
+  default-src 'none';
+  script-src 'unsafe-inline' https://cdn.jsdelivr.net;
+  style-src 'unsafe-inline' https://fonts.googleapis.com;
+  font-src https://fonts.gstatic.com;
+  connect-src https://ptbanxacmtvifjucvwzs.supabase.co
+              wss://ptbanxacmtvifjucvwzs.supabase.co
+              https://api.anthropic.com
+              https://calendarmcp.googleapis.com
+              https://gmailmcp.googleapis.com;
+  img-src data: 'self';
+  frame-ancestors 'none';
+  base-uri 'none';
+">
 <title>Kalité Inspection</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
@@ -77,9 +97,6 @@ select.fv option{background:#1a1f2e;}
 .hint{font-size:10.5px;color:var(--muted);margin-top:4px;line-height:1.5;}
 .hint a{color:var(--accent);text-decoration:none;}
 .hint a:hover{text-decoration:underline;}
-.conn-status{display:inline-flex;align-items:center;gap:5px;font-size:11px;padding:3px 8px;border-radius:5px;margin-top:5px;}
-.conn-ok{background:rgba(46,125,50,.15);color:#86EFAC;}
-.conn-no{background:rgba(127,29,29,.15);color:#FCA5A5;}
 
 /* ── BUTTONS ── */
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:12px 18px;border-radius:9px;font-family:'Syne',sans-serif;font-size:13.5px;font-weight:700;border:none;cursor:pointer;transition:all .2s;width:100%;}
@@ -147,14 +164,67 @@ select.fv option{background:#1a1f2e;}
 .empty{text-align:center;padding:30px 16px;color:var(--muted);}
 .profile-header{display:flex;align-items:center;gap:14px;margin-bottom:20px;}
 .profile-av-big{width:56px;height:56px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;color:#fff;flex-shrink:0;}
+
+/* ── BANNIÈRE PIN ── */
+.pin-banner{display:flex;align-items:center;gap:10px;background:linear-gradient(135deg,rgba(96,165,250,.12),rgba(21,101,192,.1));border:1px solid rgba(96,165,250,.25);border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:#93C5FD;}
+.pin-banner strong{color:var(--txt);}
+.pin-banner-btn{background:var(--blue);color:#fff;border:none;border-radius:6px;padding:5px 12px;font-family:'Syne',sans-serif;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0;}
+.pin-banner-btn:hover{filter:brightness(1.15);}
+.pin-banner-x{margin-left:auto;cursor:pointer;opacity:.5;font-size:16px;flex-shrink:0;line-height:1;}
+.pin-banner-x:hover{opacity:1;}
+
+/* ── LOGO ── */
+/* Header : logo compact à gauche */
+.header-logo{height:38px;width:auto;display:block;filter:brightness(0) invert(1);}
+/* Auth page : logo centré au-dessus du formulaire */
+.auth-logo-img{width:220px;max-width:88%;margin:0 auto 10px;display:block;filter:brightness(0) invert(1);}
+/* Quick Access : logo en haut de l'écran d'accueil */
+.qa-logo-img{width:260px;max-width:85%;margin:0 auto 10px;display:block;filter:brightness(0) invert(1);}
+
+/* ── QUICK ACCESS ── */
+.qa-wrap{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center;}
+.qa-title{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;margin-bottom:6px;}
+.qa-sub{font-size:13px;color:var(--muted2);margin-bottom:32px;}
+.qa-grid{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;max-width:480px;margin-bottom:22px;}
+.qa-card{background:var(--s1);border:1px solid var(--bdr);border-radius:18px;padding:20px 16px;cursor:pointer;transition:all .2s;text-align:center;min-width:110px;user-select:none;-webkit-tap-highlight-color:transparent;}
+.qa-card:hover{border-color:var(--bdr2);transform:translateY(-3px);}
+.qa-card:active{transform:scale(.95);}
+.qa-av{width:58px;height:58px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;color:#fff;margin:0 auto 10px;}
+.qa-name{font-family:'Syne',sans-serif;font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:90px;}
+.qa-role{font-size:10px;color:var(--muted);margin-top:3px;}
+.qa-add{background:transparent;border:1.5px dashed var(--bdr2);border-radius:18px;padding:20px 16px;min-width:110px;cursor:pointer;font-size:20px;color:var(--muted2);transition:all .2s;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;user-select:none;}
+.qa-add:hover{border-color:var(--accent);color:var(--accent);}
+.qa-add span{font-size:11px;font-family:'Syne',sans-serif;font-weight:600;}
+.qa-locked{opacity:.35;pointer-events:none;}
+.qa-lock-badge{font-size:9.5px;background:rgba(239,68,68,.15);color:var(--red);border-radius:5px;padding:2px 7px;margin-top:5px;display:inline-block;}
+
+/* ── PIN PAD ── */
+.pin-overlay{position:fixed;inset:0;background:rgba(0,0,0,.82);backdrop-filter:blur(10px);z-index:999;display:none;align-items:center;justify-content:center;padding:20px;}
+.pin-box{background:var(--s1);border:1px solid var(--bdr2);border-radius:26px;padding:30px 22px 22px;width:100%;max-width:290px;text-align:center;}
+.pin-av{width:68px;height:68px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:800;color:#fff;margin:0 auto 11px;}
+.pin-who{font-family:'Syne',sans-serif;font-size:18px;font-weight:800;margin-bottom:3px;}
+.pin-label{font-size:12px;color:var(--muted2);margin-bottom:22px;line-height:1.4;}
+.pin-dots{display:flex;gap:14px;justify-content:center;margin-bottom:8px;}
+.pin-dot{width:14px;height:14px;border-radius:50%;border:2px solid rgba(255,255,255,.2);transition:all .15s;}
+.pin-dot.on{background:var(--accent);border-color:var(--accent);transform:scale(1.2);}
+.pin-dot.err{background:var(--red);border-color:var(--red);animation:shake .3s ease;}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
+.pin-msg{font-size:11.5px;min-height:20px;margin-bottom:16px;transition:color .2s;}
+.pin-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;}
+.pin-key{background:var(--s2);border:1px solid var(--bdr);border-radius:14px;padding:15px 10px;font-size:22px;font-family:'Syne',sans-serif;font-weight:700;cursor:pointer;transition:all .1s;user-select:none;-webkit-tap-highlight-color:transparent;}
+.pin-key:hover{background:rgba(96,165,250,.14);border-color:rgba(96,165,250,.3);}
+.pin-key:active{transform:scale(.88);background:rgba(96,165,250,.22);}
+.pin-ghost{visibility:hidden;pointer-events:none;}
+.pin-del{font-size:18px;color:var(--muted2);}
+.pin-cancel{display:inline-block;font-size:12.5px;color:var(--muted2);cursor:pointer;padding:8px 16px;border-radius:8px;transition:color .2s;}
+.pin-cancel:hover{color:var(--txt);}
 </style>
 </head>
 <body>
 
 <header>
   <div class="logo">
-    <div class="logo-ico">🔍</div>
-    <div><h1>Kalité Inspection</h1><small>Système automatisé</small></div>
+    <img src="logo.svg" class="header-logo" alt="Kalité Inspection">
   </div>
   <div class="hbtns" id="hbtns">
     <div id="ubadge" onclick="nav('settings')">
@@ -168,31 +238,81 @@ select.fv option{background:#1a1f2e;}
   </div>
 </header>
 
-<!-- ══════════════════════════════════════
-     AUTH PAGE
-══════════════════════════════════════ -->
+<!-- QUICK ACCESS — Sélecteur de profil rapide sans mot de passe -->
+<div id="pg-quick" style="display:none">
+  <div class="qa-wrap">
+    <img src="logo.svg" class="qa-logo-img" alt="Kalité Inspection">
+    <p class="qa-sub" style="margin-top:4px">Qui effectue cette inspection ?</p>
+    <div class="qa-grid" id="qa-list"></div>
+    <p style="font-size:11px;color:var(--muted)">
+      Tap ton profil pour entrer ton PIN
+    </p>
+  </div>
+</div>
+
+<!-- PIN — Pavé numérique plein écran -->
+<div id="pin-overlay" class="pin-overlay" style="display:none" role="dialog" aria-modal="true">
+  <div class="pin-box">
+    <div class="pin-av" id="pin-av"></div>
+    <div class="pin-who" id="pin-who"></div>
+    <div class="pin-label" id="pin-label">Entrer ton PIN</div>
+    <div class="pin-dots">
+      <div class="pin-dot" id="pd0"></div>
+      <div class="pin-dot" id="pd1"></div>
+      <div class="pin-dot" id="pd2"></div>
+      <div class="pin-dot" id="pd3"></div>
+    </div>
+    <div class="pin-msg" id="pin-msg"></div>
+    <div class="pin-grid">
+      <div class="pin-key" onclick="pinKey(1)">1</div>
+      <div class="pin-key" onclick="pinKey(2)">2</div>
+      <div class="pin-key" onclick="pinKey(3)">3</div>
+      <div class="pin-key" onclick="pinKey(4)">4</div>
+      <div class="pin-key" onclick="pinKey(5)">5</div>
+      <div class="pin-key" onclick="pinKey(6)">6</div>
+      <div class="pin-key" onclick="pinKey(7)">7</div>
+      <div class="pin-key" onclick="pinKey(8)">8</div>
+      <div class="pin-key" onclick="pinKey(9)">9</div>
+      <div class="pin-key pin-ghost"></div>
+      <div class="pin-key" onclick="pinKey(0)">0</div>
+      <div class="pin-key pin-del" onclick="pinDel()">⌫</div>
+    </div>
+    <span class="pin-cancel" onclick="cancelPin()">Annuler</span>
+  </div>
+</div>
+
+<!-- AUTH PAGE -->
 <div id="pg-auth" style="display:none">
   <div class="pg-auth-wrap">
     <div class="auth-box">
-      <div class="auth-logo">🔍</div>
-      <h2>Kalité Inspection</h2>
-      <p>Connecte-toi pour accéder à ton espace</p>
+      <img src="logo.svg" class="auth-logo-img" alt="Kalité Inspection">
+      <p style="font-size:12.5px;color:var(--muted2);margin-bottom:22px">Connecte-toi pour accéder à ton espace</p>
       <div class="auth-tabs">
         <button class="atab on" id="tab-login-btn" onclick="switchTab('login')">Se connecter</button>
         <button class="atab" id="tab-signup-btn" onclick="switchTab('signup')">Créer un compte</button>
       </div>
-      <!-- LOGIN -->
       <div id="tab-login">
-        <div class="f"><label>Courriel</label><input class="fv" id="li-email" type="email" placeholder="toi@kaliteinspection.ca"></div>
-        <div class="f" style="margin-bottom:14px"><label>Mot de passe</label><input class="fv" id="li-pw" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()"></div>
+        <div class="f"><label>Courriel</label>
+          <input class="fv" id="li-email" type="email" placeholder="toi@kaliteinspection.ca"
+                 maxlength="254" autocomplete="email"></div>
+        <div class="f" style="margin-bottom:14px"><label>Mot de passe</label>
+          <input class="fv" id="li-pw" type="password" placeholder="••••••••"
+                 maxlength="128" autocomplete="current-password"
+                 onkeydown="if(event.key==='Enter')doLogin()"></div>
         <div id="st-auth"></div>
         <button class="btn btn-b" onclick="doLogin()">Se connecter →</button>
       </div>
-      <!-- SIGNUP -->
       <div id="tab-signup" style="display:none">
-        <div class="f"><label>Courriel professionnel</label><input class="fv" id="su-email" type="email" placeholder="toi@kaliteinspection.ca"></div>
-        <div class="f"><label>Mot de passe <span style="color:var(--muted)">(min. 6 caractères)</span></label><input class="fv" id="su-pw" type="password" placeholder="••••••••"></div>
-        <div class="f" style="margin-bottom:14px"><label>Confirmer le mot de passe</label><input class="fv" id="su-pw2" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')doSignup()"></div>
+        <div class="f"><label>Courriel professionnel</label>
+          <input class="fv" id="su-email" type="email" placeholder="toi@kaliteinspection.ca"
+                 maxlength="254" autocomplete="email"></div>
+        <div class="f"><label>Mot de passe <span style="color:var(--muted)">(min. 6 caractères)</span></label>
+          <input class="fv" id="su-pw" type="password" placeholder="••••••••"
+                 maxlength="128" autocomplete="new-password"></div>
+        <div class="f" style="margin-bottom:14px"><label>Confirmer le mot de passe</label>
+          <input class="fv" id="su-pw2" type="password" placeholder="••••••••"
+                 maxlength="128" autocomplete="new-password"
+                 onkeydown="if(event.key==='Enter')doSignup()"></div>
         <div id="st-signup"></div>
         <button class="btn btn-b" onclick="doSignup()">Créer mon compte →</button>
       </div>
@@ -200,9 +320,7 @@ select.fv option{background:#1a1f2e;}
   </div>
 </div>
 
-<!-- ══════════════════════════════════════
-     SETUP WIZARD (première connexion)
-══════════════════════════════════════ -->
+<!-- SETUP WIZARD -->
 <div class="pg" id="pg-setup">
   <div class="setup-steps">
     <div class="ss on" id="ss1"></div>
@@ -210,17 +328,22 @@ select.fv option{background:#1a1f2e;}
     <div class="ss" id="ss3"></div>
   </div>
 
-  <!-- ÉTAPE 1 : Tes informations -->
   <div class="setup-step on" id="sw1">
     <div class="step-icon">👤</div>
     <div class="step-title">Tes informations</div>
     <div class="step-sub">Crée ton profil d'inspecteur. Ces infos seront utilisées automatiquement dans tous les documents.</div>
     <div class="card">
       <div class="g2">
-        <div class="f"><label>Prénom *</label><input class="fv" id="sw-prenom" type="text" placeholder="Marc-Antoine"></div>
-        <div class="f"><label>Nom *</label><input class="fv" id="sw-nom" type="text" placeholder="Mondoux"></div>
+        <div class="f"><label>Prénom *</label>
+          <input class="fv" id="sw-prenom" type="text" placeholder="Marc-Antoine"
+                 maxlength="100" autocomplete="given-name"></div>
+        <div class="f"><label>Nom *</label>
+          <input class="fv" id="sw-nom" type="text" placeholder="Mondoux"
+                 maxlength="100" autocomplete="family-name"></div>
       </div>
-      <div class="f"><label>Courriel professionnel *</label><input class="fv" id="sw-email" type="email" placeholder="toi@kaliteinspection.ca">
+      <div class="f"><label>Courriel professionnel *</label>
+        <input class="fv" id="sw-email" type="email" placeholder="toi@kaliteinspection.ca"
+               maxlength="254" autocomplete="email">
         <div class="hint">Utilisé pour le CC des emails clients et les invitations calendrier</div>
       </div>
       <div class="f"><label>Rôle</label>
@@ -234,7 +357,6 @@ select.fv option{background:#1a1f2e;}
     <button class="btn btn-b" onclick="setupNext(1)">Continuer →</button>
   </div>
 
-  <!-- ÉTAPE 2 : Connexions -->
   <div class="setup-step" id="sw2">
     <div class="step-icon">🔌</div>
     <div class="step-title">Tes connexions</div>
@@ -243,7 +365,8 @@ select.fv option{background:#1a1f2e;}
       <div class="ch">📅 Google Calendar &amp; Gmail</div>
       <div class="f">
         <label>Courriel Google (Calendar &amp; Gmail) *</label>
-        <input class="fv" id="sw-cal" type="email" placeholder="toi@kaliteinspection.ca">
+        <input class="fv" id="sw-cal" type="email" placeholder="toi@kaliteinspection.ca"
+               maxlength="254" autocomplete="email">
         <div class="hint">Ton adresse Google utilisée pour créer les événements et envoyer les emails</div>
       </div>
     </div>
@@ -254,7 +377,6 @@ select.fv option{background:#1a1f2e;}
     </div>
   </div>
 
-  <!-- ÉTAPE 3 : Prêt ! -->
   <div class="setup-step" id="sw3">
     <div class="step-icon">🎉</div>
     <div class="step-title">Tout est prêt !</div>
@@ -265,32 +387,47 @@ select.fv option{background:#1a1f2e;}
   </div>
 </div>
 
-<!-- ══════════════════════════════════════
-     APP — FORMULAIRE
-══════════════════════════════════════ -->
+<!-- APP — FORMULAIRE -->
 <div class="pg" id="pg-app">
 
   <div id="ap1">
+    <!-- Bannière d'invitation PIN (visible une seule fois si pas encore configuré) -->
+    <div class="pin-banner" id="pin-banner" style="display:none">
+      <span>🔑</span>
+      <span><strong>Accès rapide par PIN</strong><br>La prochaine fois, entre directement avec 4 chiffres — sans mot de passe.</span>
+      <button class="pin-banner-btn" onclick="activatePinFromBanner()">Activer →</button>
+      <span class="pin-banner-x" onclick="dismissPinBanner()">✕</span>
+    </div>
     <div class="rep-note" id="repnote">💼 <strong id="repnm">—</strong> <span class="tz-badge" id="tzbadge">🕐 Montréal</span></div>
     <div class="card">
       <div class="ch">👤 Client</div>
-      <div class="f"><label>Nom complet acheteur 1 *</label><input class="fv" id="a1" type="text" placeholder="Jean Tremblay"></div>
-      <div class="f"><label>Nom complet acheteur 2 <span style="color:var(--muted)">(optionnel)</span></label><input class="fv" id="a2" type="text" placeholder="Marie Tremblay"></div>
+      <div class="f"><label>Nom complet acheteur 1 *</label>
+        <input class="fv" id="a1" type="text" placeholder="Jean Tremblay"
+               maxlength="150" autocomplete="off"></div>
+      <div class="f"><label>Nom complet acheteur 2 <span style="color:var(--muted)">(optionnel)</span></label>
+        <input class="fv" id="a2" type="text" placeholder="Marie Tremblay"
+               maxlength="150" autocomplete="off"></div>
       <div class="g2">
-        <div class="f"><label>Téléphone</label><input class="fv" id="tel" type="tel" placeholder="514-555-1234"></div>
-        <div class="f"><label>Courriel *</label><input class="fv" id="email" type="email" placeholder="client@email.com"></div>
+        <div class="f"><label>Téléphone</label>
+          <input class="fv" id="tel" type="tel" placeholder="514-555-1234"
+                 maxlength="20" autocomplete="off"></div>
+        <div class="f"><label>Courriel *</label>
+          <input class="fv" id="email" type="email" placeholder="client@email.com"
+                 maxlength="254" autocomplete="off"></div>
       </div>
     </div>
     <div class="card">
       <div class="ch">📍 Adresses</div>
       <div class="f">
         <label>Adresse du bâtiment à inspecter *</label>
-        <input class="fv" id="bat" type="text" placeholder="400 Rue Argyll, Sherbrooke, QC J1J 3H6">
+        <input class="fv" id="bat" type="text" placeholder="400 Rue Argyll, Sherbrooke, QC J1J 3H6"
+               maxlength="500" autocomplete="off">
         <div class="hint">⚡ Claude sépare automatiquement : numéro, rue, ville, code postal</div>
       </div>
       <div class="f">
         <label>Adresse du domicile du client</label>
-        <input class="fv" id="cli" type="text" placeholder="21 Rue Sylvio-Blais, Sherbrooke, QC J1C 0R6">
+        <input class="fv" id="cli" type="text" placeholder="21 Rue Sylvio-Blais, Sherbrooke, QC J1C 0R6"
+               maxlength="500" autocomplete="off">
       </div>
     </div>
     <div class="card">
@@ -301,7 +438,8 @@ select.fv option{background:#1a1f2e;}
       </div>
       <div class="g2">
         <div class="f"><label>Heure fin <span class="auto-badge">⚡ AUTO +4h</span></label><input class="fv" id="iheurefin" type="time" readonly></div>
-        <div class="f"><label>Prix ($) *</label><input class="fv" id="prix" type="number" placeholder="550"></div>
+        <div class="f"><label>Prix ($) *</label>
+          <input class="fv" id="prix" type="number" placeholder="550" min="1" max="99999" step="0.01"></div>
       </div>
       <div style="background:rgba(96,165,250,.05);border:1px solid rgba(96,165,250,.1);border-radius:8px;padding:9px 12px;font-size:11px;color:var(--accent);">
         ⚡ Auto : heure fin · format ISO · codes postaux · année construction · timezone Montréal (EDT/EST)
@@ -317,14 +455,19 @@ select.fv option{background:#1a1f2e;}
     <div class="card">
       <div class="ch">🔧 Complété par Claude <span class="auto-badge">⚡</span></div>
       <div class="g2">
-        <div class="f"><label>Code postal bâtiment</label><input class="fv" id="r_bcp" type="text"></div>
-        <div class="f"><label>Année construction</label><input class="fv" id="r_age" type="text"></div>
+        <div class="f"><label>Code postal bâtiment</label>
+          <input class="fv" id="r_bcp" type="text" maxlength="10"></div>
+        <div class="f"><label>Année construction</label>
+          <input class="fv" id="r_age" type="text" maxlength="4"></div>
       </div>
       <div class="g2">
-        <div class="f"><label>Numéro bâtiment</label><input class="fv" id="r_bnum" type="text"></div>
-        <div class="f"><label>Rue bâtiment</label><input class="fv" id="r_brue" type="text"></div>
+        <div class="f"><label>Numéro bâtiment</label>
+          <input class="fv" id="r_bnum" type="text" maxlength="20"></div>
+        <div class="f"><label>Rue bâtiment</label>
+          <input class="fv" id="r_brue" type="text" maxlength="200"></div>
       </div>
-      <div class="f"><label>Code postal client</label><input class="fv" id="r_ccp" type="text"></div>
+      <div class="f"><label>Code postal client</label>
+        <input class="fv" id="r_ccp" type="text" maxlength="10"></div>
     </div>
     <div id="st2"></div>
     <div class="arow">
@@ -358,9 +501,7 @@ select.fv option{background:#1a1f2e;}
   </div>
 </div>
 
-<!-- ══════════════════════════════════════
-     REGISTRE
-══════════════════════════════════════ -->
+<!-- REGISTRE -->
 <div class="pg" id="pg-registre">
   <p class="ptitle">📖 Registre</p>
   <p class="psub" id="reg-sub">Historique de tes inspections</p>
@@ -376,9 +517,7 @@ select.fv option{background:#1a1f2e;}
   </div>
 </div>
 
-<!-- ══════════════════════════════════════
-     SETTINGS — Profil personnel
-══════════════════════════════════════ -->
+<!-- SETTINGS -->
 <div class="pg" id="pg-settings">
   <div class="profile-header">
     <div class="profile-av-big" id="set-av"></div>
@@ -391,10 +530,13 @@ select.fv option{background:#1a1f2e;}
   <div class="card">
     <div class="ch">👤 Mes informations</div>
     <div class="g2">
-      <div class="f"><label>Prénom *</label><input class="fv" id="set-prenom" type="text"></div>
-      <div class="f"><label>Nom *</label><input class="fv" id="set-nom" type="text"></div>
+      <div class="f"><label>Prénom *</label>
+        <input class="fv" id="set-prenom" type="text" maxlength="100" autocomplete="given-name"></div>
+      <div class="f"><label>Nom *</label>
+        <input class="fv" id="set-nom" type="text" maxlength="100" autocomplete="family-name"></div>
     </div>
-    <div class="f"><label>Courriel professionnel *</label><input class="fv" id="set-email" type="email"></div>
+    <div class="f"><label>Courriel professionnel *</label>
+      <input class="fv" id="set-email" type="email" maxlength="254" autocomplete="email"></div>
     <div class="f"><label>Rôle</label>
       <select class="fv" id="set-role">
         <option>Inspecteur</option><option>Inspecteur senior</option><option>Administrateur</option>
@@ -407,13 +549,19 @@ select.fv option{background:#1a1f2e;}
     <div class="ch">🔌 Mes connexions</div>
     <div class="f">
       <label>Courriel Google (Calendar &amp; Gmail) *</label>
-      <input class="fv" id="set-cal" type="email">
+      <input class="fv" id="set-cal" type="email" maxlength="254" autocomplete="email">
       <div class="hint">Ton adresse Google utilisée pour créer les événements et envoyer les emails</div>
     </div>
   </div>
 
   <div id="st-set"></div>
   <button class="btn btn-b" onclick="saveSettings()">💾 Sauvegarder les changements</button>
+
+  <div class="card" id="pin-settings-card" style="margin-top:16px;display:none">
+    <div class="ch">🔑 Accès rapide par PIN</div>
+    <p style="font-size:12px;color:var(--muted2);margin-bottom:12px">Accède à ton profil en 4 chiffres depuis l'écran d'accueil — sans entrer ton mot de passe.</p>
+    <div id="pin-settings-content"></div>
+  </div>
 
   <div class="card" style="margin-top:16px;border-color:rgba(245,158,11,.18)">
     <div class="ch" style="color:var(--orange)">⚠️ Zone danger</div>
@@ -433,6 +581,59 @@ const MCP_GMAIL='https://gmailmcp.googleapis.com/mcp/v1';
 const MCP_CAL='https://calendarmcp.googleapis.com/mcp/v1';
 const COLORS=['#1565C0','#2E7D32','#6A1B9A','#AD1457','#E65100','#00838F','#37474F','#558B2F','#4527A0','#00695C'];
 const MOIS_FR=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+const EMAIL_RE=/^[^\s@]{1,64}@[^\s@]{1,255}\.[^\s@]{2,}$/;
+const KALITE_QP_KEY='kalite_qp_v1';  // clé localStorage pour les profils rapides
+const MAX_PIN_ATTEMPTS=3;             // tentatives avant blocage
+const LOCKOUT_MS=5*60*1000;           // durée de blocage : 5 minutes
+
+// ═══════════════════════════════════════════════════
+// SÉCURITÉ — Utilitaires
+// ═══════════════════════════════════════════════════
+
+// Échappe les caractères HTML spéciaux pour insertion sécurisée dans innerHTML.
+function escHTML(v){
+  if(v==null)return '';
+  return String(v)
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;')
+    .replace(/'/g,'&#x27;');
+}
+
+// Nettoie le texte destiné à des templates HTML (emails, prompts).
+// Supprime balises, JS URLs et caractères de contrôle.
+function sanitizeText(v,maxLen=500){
+  if(v==null)return '';
+  return String(v)
+    .replace(/<[^>]*>/g,'')
+    .replace(/javascript\s*:/gi,'')
+    .replace(/data\s*:/gi,'')
+    .replace(/[\x00-\x1F\x7F]/g,' ')
+    .trim()
+    .substring(0,maxLen);
+}
+
+// Valide et borne les champs de la réponse JSON de Claude.
+function safeStr(v,maxLen=300){
+  if(typeof v!=='string')return '';
+  return sanitizeText(v,maxLen);
+}
+
+// Valide le format email.
+function isValidEmail(e){ return EMAIL_RE.test(e); }
+
+// Extrait le premier objet JSON d'une réponse LLM.
+// Gère : blocs markdown ```json```, texte autour, objets imbriqués.
+// Utilise lastIndexOf('}') pour ne pas couper sur le premier } imbriqué.
+function extractJSON(text){
+  if(!text) return null;
+  const clean=text.replace(/```(?:json)?\s*/gi,'').replace(/```\s*/g,'');
+  const start=clean.indexOf('{');
+  const end=clean.lastIndexOf('}');
+  if(start===-1||end===-1||start>=end) return null;
+  return clean.substring(start,end+1);
+}
 
 // ═══════════════════════════════════════════════════
 // STATE
@@ -440,12 +641,14 @@ const MOIS_FR=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août
 let sb, authUser=null, profile=null, apiKey=null;
 let setupColor=COLORS[0], settingsColor=COLORS[0];
 let D={}, R={}, regData=[], regFilter='all';
+let pinState={digits:[],targetIdx:-1,mode:'verify',firstPIN:''};
+let pinOpen=false; // flag fiable pour le handler clavier
 
 // ═══════════════════════════════════════════════════
 // INIT
-// BUG FIX: onAuthStateChange fires INITIAL_SESSION at load, causing double
-// afterLogin() call alongside getSession(). Skip INITIAL_SESSION in the
-// listener — getSession() handles the initial state.
+// FIX : onAuthStateChange émet INITIAL_SESSION au chargement, ce qui
+// provoquerait un double appel de afterLogin() avec getSession().
+// On ignore INITIAL_SESSION dans le listener.
 // ═══════════════════════════════════════════════════
 async function init(){
   sb=window.supabase.createClient(SURL,SKEY);
@@ -453,22 +656,26 @@ async function init(){
     if(event==='INITIAL_SESSION') return;
     if(session?.user){
       authUser=session.user;
+      // Mettre à jour les tokens stockés localement à chaque refresh
+      if(event==='TOKEN_REFRESHED'||event==='SIGNED_IN') updateStoredTokens(session.user.id,session);
       await afterLogin();
     } else {
       authUser=null; profile=null; apiKey=null;
-      showAuth();
+      D={}; R={}; regData=[];
+      showEntryPoint(); // Quick Access ou Login selon les profils locaux
     }
   });
   const {data:{session}}=await sb.auth.getSession();
   if(session?.user){ authUser=session.user; await afterLogin(); }
-  else showAuth();
+  else showEntryPoint();
   renderCP('sw-cpick',COLORS[0],'setupColor');
 }
 
 async function afterLogin(){
   try{
-    const {data}=await sb.from('app_settings').select('value').eq('key','anthropic_api_key').single();
-    apiKey=data?.value||null;
+    // maybeSingle() retourne null sans throw si la ligne n'existe pas encore
+    const {data,error}=await sb.from('app_settings').select('value').eq('key','anthropic_api_key').maybeSingle();
+    if(!error) apiKey=data?.value||null;
   }catch(e){ apiKey=null; }
   await loadProfile();
 }
@@ -505,9 +712,9 @@ function showSetupPage(existing){
   setHeaderAuth(false);
   if(existing){
     if(existing.prenom) document.getElementById('sw-prenom').value=existing.prenom;
-    if(existing.nom) document.getElementById('sw-nom').value=existing.nom;
-    if(existing.email) document.getElementById('sw-email').value=existing.email;
-    if(existing.role) document.getElementById('sw-role').value=existing.role;
+    if(existing.nom)    document.getElementById('sw-nom').value=existing.nom;
+    if(existing.email)  document.getElementById('sw-email').value=existing.email;
+    if(existing.role)   document.getElementById('sw-role').value=existing.role;
     if(existing.cal_email) document.getElementById('sw-cal').value=existing.cal_email;
     if(existing.color){ setupColor=existing.color; renderCP('sw-cpick',setupColor,'setupColor'); }
   }
@@ -520,14 +727,20 @@ function showMainApp(){
   document.getElementById('ubadge').style.display='flex';
   document.getElementById('bav').style.background=profile.color||COLORS[0];
   document.getElementById('bav').textContent=ini(profile);
-  document.getElementById('bnm').textContent=profile.prenom;
-  document.getElementById('repnm').textContent=`${profile.prenom} ${profile.nom} — ${profile.email}`;
+  document.getElementById('bnm').textContent=escHTML(profile.prenom);
+  document.getElementById('repnm').textContent=sanitizeText(`${profile.prenom} ${profile.nom} — ${profile.email}`);
   document.getElementById('sring').style.background=profile.color||COLORS[0];
   nav('app');
+  // Sauvegarder le profil pour l'accès rapide (non bloquant)
+  saveProfileToQuickAccess().then(()=>{
+    // Après la sauvegarde, montrer la bannière si PIN pas encore configuré
+    setTimeout(()=>maybeShowPinBanner(), 400);
+  }).catch(()=>{});
 }
 
 function hideAll(){
   document.getElementById('pg-auth').style.display='none';
+  document.getElementById('pg-quick').style.display='none';
   document.querySelectorAll('.pg').forEach(p=>p.classList.remove('on'));
 }
 
@@ -540,6 +753,7 @@ function setHeaderAuth(loggedIn){
 
 // ═══════════════════════════════════════════════════
 // AUTH ACTIONS
+// FIX : normalisation en minuscules pour éviter la duplication de comptes
 // ═══════════════════════════════════════════════════
 function switchTab(t){
   document.getElementById('tab-login').style.display=t==='login'?'block':'none';
@@ -550,19 +764,21 @@ function switchTab(t){
 }
 
 async function doLogin(){
-  const email=(document.getElementById('li-email').value||'').trim();
+  const email=(document.getElementById('li-email').value||'').trim().toLowerCase();
   const pw=document.getElementById('li-pw').value||'';
   if(!email||!pw){ showSt('st-auth','err','Remplis tous les champs.'); return; }
+  if(!isValidEmail(email)){ showSt('st-auth','err','Format de courriel invalide.'); return; }
   showSt('st-auth','load','Connexion en cours...');
   const {error}=await sb.auth.signInWithPassword({email,password:pw});
   if(error){ showSt('st-auth','err',error.message==='Invalid login credentials'?'Courriel ou mot de passe incorrect.':error.message); }
 }
 
 async function doSignup(){
-  const email=(document.getElementById('su-email').value||'').trim();
+  const email=(document.getElementById('su-email').value||'').trim().toLowerCase();
   const pw=document.getElementById('su-pw').value||'';
   const pw2=document.getElementById('su-pw2').value||'';
   if(!email||!pw){ showSt('st-signup','err','Remplis tous les champs.'); return; }
+  if(!isValidEmail(email)){ showSt('st-signup','err','Format de courriel invalide.'); return; }
   if(pw!==pw2){ showSt('st-signup','err','Les mots de passe ne correspondent pas.'); return; }
   if(pw.length<6){ showSt('st-signup','err','Mot de passe trop court (minimum 6 caractères).'); return; }
   showSt('st-signup','load','Création du compte...');
@@ -571,7 +787,9 @@ async function doSignup(){
   showSt('st-signup','ok','Compte créé ! Vérifie ton courriel si une confirmation est requise.');
 }
 
+// FIX : nettoyage des données sensibles avant la déconnexion Supabase
 async function doLogout(){
+  apiKey=null; D={}; R={}; regData=[];
   await sb.auth.signOut();
 }
 
@@ -593,22 +811,23 @@ function setupNext(dir){
   if(swStep===1){
     const p=gv('sw-prenom'),n=gv('sw-nom'),e=gv('sw-email');
     if(!p||!n||!e){ showSt('st-sw1','err','Prénom, nom et courriel sont requis.'); return; }
-    if(!e.includes('@')){ showSt('st-sw1','err','Courriel invalide.'); return; }
+    if(!isValidEmail(e)){ showSt('st-sw1','err','Format de courriel invalide.'); return; }
     showSt('st-sw1','','');
     setSetupStep(2);
     if(!gv('sw-cal')) document.getElementById('sw-cal').value=e;
   } else if(swStep===2){
     const cal=gv('sw-cal');
     if(!cal){ showSt('st-sw2','err','Le courriel Google est requis.'); return; }
-    if(!cal.includes('@')){ showSt('st-sw2','err','Courriel Google invalide.'); return; }
+    if(!isValidEmail(cal)){ showSt('st-sw2','err','Format de courriel Google invalide.'); return; }
     showSt('st-sw2','','');
+    // FIX XSS : escHTML sur toutes les valeurs utilisateur dans innerHTML
     document.getElementById('sw-summary').innerHTML=`
       <div class="ch">📋 Résumé de ton profil</div>
       ${[
-        ['👤 Nom',gv('sw-prenom')+' '+gv('sw-nom')],
-        ['📧 Courriel',gv('sw-email')],
-        ['🎯 Rôle',document.getElementById('sw-role').value],
-        ['📅 Calendar / Gmail',cal],
+        ['👤 Nom',escHTML(gv('sw-prenom')+' '+gv('sw-nom'))],
+        ['📧 Courriel',escHTML(gv('sw-email'))],
+        ['🎯 Rôle',escHTML(document.getElementById('sw-role').value)],
+        ['📅 Calendar / Gmail',escHTML(cal)],
       ].map(([k,v])=>`<div class="sumr"><span class="sumk">${k}</span><span style="font-size:12px">${v}</span></div>`).join('')}`;
     setSetupStep(3);
   }
@@ -619,9 +838,12 @@ async function finishSetup(){
   document.querySelector('#sw3 .btn').disabled=true;
   const profData={
     user_id:authUser.id,
-    prenom:gv('sw-prenom'),nom:gv('sw-nom'),email:gv('sw-email'),
-    role:document.getElementById('sw-role').value,color:setupColor,
-    cal_email:gv('sw-cal')||gv('sw-email'),
+    prenom:sanitizeText(gv('sw-prenom'),100),
+    nom:sanitizeText(gv('sw-nom'),100),
+    email:gv('sw-email').trim().toLowerCase(),
+    role:document.getElementById('sw-role').value,
+    color:setupColor,
+    cal_email:(gv('sw-cal')||gv('sw-email')).trim().toLowerCase(),
     setup_complete:true
   };
   try{
@@ -630,7 +852,16 @@ async function finishSetup(){
     if(error) throw error;
     profile=data?.[0]||profData;
     showSt('st-sw3','ok','Profil sauvegardé !');
-    setTimeout(()=>showMainApp(),800);
+    setTimeout(async()=>{
+      showMainApp();
+      await saveProfileToQuickAccess();
+      // Proposer la création du PIN après un court délai
+      setTimeout(()=>{
+        const arr=getQuickProfiles();
+        const idx=arr.findIndex(p=>p.user_id===authUser.id);
+        if(idx!==-1&&!arr[idx].pin_hash) showPinEntry(idx,'setup');
+      },700);
+    },800);
   }catch(e){
     showSt('st-sw3','err','Erreur: '+e.message);
     document.querySelector('#sw3 .btn').disabled=false;
@@ -639,8 +870,7 @@ async function finishSetup(){
 
 // ═══════════════════════════════════════════════════
 // NAVIGATION
-// BUG FIX: 'hb-settings' n'existe pas — le bouton est 'hb-set'.
-// Utiliser un mapping explicite au lieu de p.replace().
+// FIX : mapping explicite — hb-settings n'existait pas, le bouton est hb-set
 // ═══════════════════════════════════════════════════
 function nav(p){
   hideAll();
@@ -661,10 +891,9 @@ function nav(p){
 // ═══════════════════════════════════════════════════
 function loadSettings(){
   if(!profile) return;
-  const ini_=ini(profile);
-  document.getElementById('set-av').textContent=ini_;
+  document.getElementById('set-av').textContent=ini(profile);
   document.getElementById('set-av').style.background=profile.color||COLORS[0];
-  document.getElementById('set-title').textContent=`${profile.prenom} ${profile.nom}`;
+  document.getElementById('set-title').textContent=sanitizeText(`${profile.prenom} ${profile.nom}`,200);
   document.getElementById('set-email-display').textContent=authUser?.email||'';
   document.getElementById('set-prenom').value=profile.prenom||'';
   document.getElementById('set-nom').value=profile.nom||'';
@@ -674,34 +903,57 @@ function loadSettings(){
   settingsColor=profile.color||COLORS[0];
   renderCP('set-cpick',settingsColor,'settingsColor');
   showSt('st-set','','');
+  // Carte PIN : visible seulement si le profil est enregistré localement
+  const qp=getQPByUser(authUser?.id);
+  const pinCard=document.getElementById('pin-settings-card');
+  const pinContent=document.getElementById('pin-settings-content');
+  if(qp){
+    pinCard.style.display='block';
+    if(qp.pin_hash){
+      pinContent.innerHTML=`<div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-gh" style="flex:1" onclick="startChangePinFlow()">✏️ Changer le PIN</button>
+        <button class="btn btn-r" style="flex:1" onclick="removeQuickProfileFromSettings()">🗑 Désactiver</button>
+      </div>`;
+    } else {
+      pinContent.innerHTML=`<button class="btn btn-b" onclick="startActivatePinFlow()">✨ Activer l'accès rapide</button>`;
+    }
+  } else {
+    pinCard.style.display='none';
+  }
 }
 
 async function saveSettings(){
-  const p=gv('set-prenom'),n=gv('set-nom'),e=gv('set-email'),cal=gv('set-cal');
+  const p=sanitizeText(gv('set-prenom'),100);
+  const n=sanitizeText(gv('set-nom'),100);
+  const e=gv('set-email').trim().toLowerCase();
+  const cal=gv('set-cal').trim().toLowerCase();
   if(!p||!n||!e){ showSt('st-set','err','Prénom, nom et courriel sont requis.'); return; }
+  if(!isValidEmail(e)){ showSt('st-set','err','Format de courriel professionnel invalide.'); return; }
   if(!cal){ showSt('st-set','err','Le courriel Google est requis.'); return; }
+  if(!isValidEmail(cal)){ showSt('st-set','err','Format de courriel Google invalide.'); return; }
   showSt('st-set','load','Sauvegarde...');
   try{
-    const upd={prenom:p,nom:n,email:e,role:document.getElementById('set-role').value,
+    const upd={prenom:p,nom:n,email:e,
+      role:document.getElementById('set-role').value,
       color:settingsColor,cal_email:cal};
     const {data,error}=await sb.from('profiles').update(upd).eq('user_id',authUser.id).select();
     if(error) throw error;
     profile={...profile,...(data?.[0]||upd)};
     document.getElementById('bav').style.background=settingsColor;
     document.getElementById('bav').textContent=ini(profile);
-    document.getElementById('bnm').textContent=p;
-    document.getElementById('repnm').textContent=`${p} ${n} — ${e}`;
-    document.getElementById('set-title').textContent=`${p} ${n}`;
+    document.getElementById('bnm').textContent=escHTML(p);
+    document.getElementById('repnm').textContent=sanitizeText(`${p} ${n} — ${e}`);
+    document.getElementById('set-title').textContent=sanitizeText(`${p} ${n}`,200);
     document.getElementById('set-av').style.background=settingsColor;
     document.getElementById('sring').style.background=settingsColor;
-    showSt('st-set','ok','✅ Profil mis à jour !');
+    showSt('st-set','ok','Profil mis à jour !');
   }catch(err){ showSt('st-set','err','Erreur: '+err.message); }
 }
 
 // ═══════════════════════════════════════════════════
 // COLOR PICKERS
 // ═══════════════════════════════════════════════════
-function renderCP(containerId, sel, varName){
+function renderCP(containerId,sel,varName){
   document.getElementById(containerId).innerHTML=COLORS.map(c=>
     `<div class="csw${c===sel?' on':''}" style="background:${c}" onclick="pickC('${containerId}','${c}','${varName}')" data-c="${c}"></div>`
   ).join('');
@@ -709,12 +961,11 @@ function renderCP(containerId, sel, varName){
   else if(varName==='settingsColor') settingsColor=sel;
 }
 function pickC(cid,c,varName){
+  if(!COLORS.includes(c)) return; // valider que c est une couleur connue
   if(varName==='setupColor') setupColor=c;
   else if(varName==='settingsColor') settingsColor=c;
   document.querySelectorAll('#'+cid+' .csw').forEach(s=>s.classList.toggle('on',s.dataset.c===c));
-  if(varName==='settingsColor'){
-    document.getElementById('set-av').style.background=c;
-  }
+  if(varName==='settingsColor') document.getElementById('set-av').style.background=c;
 }
 
 // ═══════════════════════════════════════════════════
@@ -731,7 +982,7 @@ function getMtlLabel(dateStr){
   return getMtlOffset(dateStr)==='-04:00'?'🕐 EDT −4h':'🕐 EST −5h';
 }
 function buildISO(d,t,off){
-  if(!d||!t||!off) return '';
+  if(!d||!t||!off)return '';
   return `${d}T${t}:00${off}`;
 }
 function calcFin(){
@@ -744,62 +995,117 @@ function calcFin(){
 
 // ═══════════════════════════════════════════════════
 // UTILS
+// FIX : ini() crashait si prenom était une chaîne vide
 // ═══════════════════════════════════════════════════
-const ini=p=>(p.prenom[0]+(p.nom?.[0]||'')).toUpperCase();
+const ini=p=>((p.prenom?.[0]||'?')+(p.nom?.[0]||'')).toUpperCase();
 const gv=id=>(document.getElementById(id)?.value||'').trim();
 const sv=(id,v)=>{const el=document.getElementById(id);if(el)el.value=v||'';};
-function showSt(id,type,html){
+
+// FIX XSS : showSt échappe maintenant le message et valide le type.
+// Renommé html→msg pour clarifier que c'est du texte brut.
+function showSt(id,type,msg){
   const el=document.getElementById(id);if(!el)return;
-  if(!html){el.innerHTML='';return;}
+  if(!msg){el.innerHTML='';return;}
+  const t=['load','ok','err','warn'].includes(type)?type:'err';
   const ico={load:'<div class="sp"></div>',ok:'✅',err:'❌',warn:'⚠️'};
-  el.innerHTML=`<div class="st ${type}">${ico[type]||''}<span>${html}</span></div>`;
+  el.innerHTML=`<div class="st ${t}">${ico[t]}<span>${escHTML(msg)}</span></div>`;
 }
+
 function setAP(n){[1,2,3,4].forEach(i=>document.getElementById('ap'+i).style.display=i===n?'block':'none');window.scrollTo({top:0,behavior:'smooth'});}
 function goBack(){setAP(1);showSt('st2','','');document.getElementById('btnA').disabled=false;}
 
 // ═══════════════════════════════════════════════════
+// FETCH — Couche réseau robuste
+// ═══════════════════════════════════════════════════
+
+// fetch() avec timeout AbortController (défaut 30s).
+// Vérifie le status HTTP, parse le JSON, traduit les erreurs réseau en français.
+async function fetchJSON(url, options, timeoutMs=30000){
+  const ctrl=new AbortController();
+  const tid=setTimeout(()=>ctrl.abort(),timeoutMs);
+  try{
+    const res=await fetch(url,{...options,signal:ctrl.signal});
+    clearTimeout(tid);
+    let body;
+    try{ body=await res.json(); }
+    catch{ throw new Error(`Réponse non-JSON du serveur (HTTP ${res.status})`); }
+    // Lever une erreur explicite sur tout code HTTP >= 400
+    if(!res.ok){
+      const msg=body?.error?.message||`Erreur serveur HTTP ${res.status}`;
+      throw new Error(msg);
+    }
+    return body;
+  }catch(e){
+    clearTimeout(tid);
+    if(e.name==='AbortError')
+      throw new Error('Délai d\'attente dépassé (30s) — vérifie ta connexion internet.');
+    if(e.message==='Failed to fetch'||e.message.includes('NetworkError')||e.message.includes('network'))
+      throw new Error('Connexion impossible — vérifie ta connexion internet et réessaie.');
+    throw e;
+  }
+}
+
+// Réessaie fn jusqu'à `retries` fois (délai 1,5s entre chaque tentative).
+// Ne réessaie PAS sur les erreurs client (4xx, clé invalide, quota).
+async function withRetry(fn, retries=1){
+  const noRetryPat=/401|403|400|Clé API|invalide|non configurée|quota|rate.limit/i;
+  for(let i=0;i<=retries;i++){
+    try{ return await fn(); }
+    catch(e){
+      if(i===retries||noRetryPat.test(e.message)) throw e;
+      await new Promise(r=>setTimeout(r,1500));
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════════
 // API CALL
 // ═══════════════════════════════════════════════════
+function _anthHeaders(extra={}){
+  return {'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01',...extra};
+}
+function _parseContent(data){
+  return (data.content||[]).map(b=>b.type==='text'?b.text:(b.content?.[0]?.text||'')).join('\n');
+}
+
 async function callC(prompt,mcps=[]){
   if(!apiKey) throw new Error('Clé API non configurée. Contacte un administrateur pour ajouter la clé dans Supabase.');
   const body={model:'claude-sonnet-4-20250514',max_tokens:1200,messages:[{role:'user',content:prompt}]};
   if(mcps.length) body.mcp_servers=mcps;
-  const headers={
-    'Content-Type':'application/json',
-    'x-api-key':apiKey,
-    'anthropic-version':'2023-06-01',
-    'anthropic-beta':'mcp-client-2025-04-04'
-  };
-  const res=await fetch(CAPI,{method:'POST',headers,body:JSON.stringify(body)});
-  const data=await res.json();
-  if(data.error) throw new Error(data.error.message);
-  return (data.content||[]).map(b=>b.type==='text'?b.text:(b.content?.[0]?.text||'')).join('\n');
+  const data=await withRetry(()=>fetchJSON(CAPI,{
+    method:'POST',
+    headers:_anthHeaders({'anthropic-beta':'mcp-client-2025-04-04'}),
+    body:JSON.stringify(body)
+  }));
+  return _parseContent(data);
 }
 
 async function callCSearch(prompt){
-  if(!apiKey) throw new Error('Clé API manquante.');
+  if(!apiKey) throw new Error('Clé API non configurée.');
   const body={model:'claude-sonnet-4-20250514',max_tokens:1200,
     tools:[{type:'web_search_20250305',name:'web_search'}],
     messages:[{role:'user',content:prompt}]};
-  const headers={
-    'Content-Type':'application/json',
-    'x-api-key':apiKey,
-    'anthropic-version':'2023-06-01',
-    'anthropic-beta':'web-search-2025-03-05'
-  };
-  const res=await fetch(CAPI,{method:'POST',headers,body:JSON.stringify(body)});
-  const data=await res.json();
-  if(data.error) throw new Error(data.error.message);
+  const data=await withRetry(()=>fetchJSON(CAPI,{
+    method:'POST',
+    headers:_anthHeaders({'anthropic-beta':'web-search-2025-03-05'}),
+    body:JSON.stringify(body)
+  }));
   return (data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('');
 }
 
 // ═══════════════════════════════════════════════════
 // ANALYSE TEXTO
+// FIX : sanitizeText() appliqué aux entrées avant inclusion dans les prompts.
+// FIX : validation complète de la réponse JSON de Claude (types + longueurs).
 // ═══════════════════════════════════════════════════
 async function doAnalyse(){
   if(!profile){showSt('st1','err','Profil non chargé. Actualise la page.');return;}
   const a1=gv('a1'),email=gv('email'),bat=gv('bat'),date=gv('idate'),heure=gv('iheure'),prix=gv('prix');
   if(!a1||!email||!bat||!date||!heure||!prix){showSt('st1','err','Les champs avec * sont requis !');return;}
+  if(!isValidEmail(email)){showSt('st1','err','Format de courriel client invalide.');return;}
+  const prixNum=parseFloat(prix);
+  if(isNaN(prixNum)||prixNum<=0||prixNum>99999){showSt('st1','err','Prix invalide (entre 1 et 99 999 $).');return;}
+
   document.getElementById('btnA').disabled=true;
   showSt('st1','load','Claude analyse et recherche les informations manquantes...');
 
@@ -815,33 +1121,81 @@ async function doAnalyse(){
   const dateFinISO=buildISO(date,heureFin,tzOff);
   const dateAffichage=`${parseInt(jourN)} ${moisFR} ${annee} à ${h12}:${String(mm).padStart(2,'0')} ${ampm}`;
 
-  const prompt=`Tu es l'assistant de ${profile.prenom} ${profile.nom}, inspecteur chez Kalité Inspection (Québec).
+  // Nettoyage des entrées avant inclusion dans le prompt
+  const safeBat=sanitizeText(bat,400);
+  const safeCli=sanitizeText(gv('cli')||'non fourni',400);
+  const safeA1=sanitizeText(a1,150);
+
+  const prompt=`Tu es l'assistant de ${sanitizeText(profile.prenom,50)} ${sanitizeText(profile.nom,50)}, inspecteur chez Kalité Inspection (Québec).
 Analyse ces informations et complète ce qui manque. Utilise web_search pour codes postaux manquants et année de construction.
-Bâtiment à inspecter: ${bat}
-Domicile client: ${gv('cli')||'non fourni'}
-Retourne UNIQUEMENT ce JSON:
+Bâtiment à inspecter: ${safeBat}
+Domicile client: ${safeCli}
+Retourne UNIQUEMENT ce JSON (sans markdown, sans explication) :
 {"batAdresse":"adresse complète bâtiment","batNum":"numéro civique","batRue":"rue seulement","batVille":"ville","batCP":"code postal","batApp":"N/A","clientAdresse":"adresse complète domicile","clientNum":"","clientRue":"","clientVille":"","clientCP":"","clientApp":"N/A","ageConstruction":"année","inferredFields":[]}`;
 
   try{
     const txt=await callCSearch(prompt);
-    const m=txt.match(/\{[\s\S]*\}/); if(!m) throw new Error('Réponse invalide');
-    const C=JSON.parse(m[0]);
-    D={a1,a2:gv('a2')||'N/A',tel:gv('tel'),email,prix,
-       rp:profile.prenom,rn:profile.nom,repEmail:profile.email,
+    const jsonStr=extractJSON(txt);
+    if(!jsonStr) throw new Error('Réponse JSON introuvable — Claude n\'a pas retourné le format attendu.');
+    let raw;
+    try{ raw=JSON.parse(jsonStr); }
+    catch(e){ throw new Error('Réponse JSON malformée : '+e.message); }
+    if(typeof raw!=='object'||raw===null) throw new Error('Format de réponse inattendu');
+
+    // Validation et assainissement complet de la réponse Claude
+    const C={
+      batAdresse:safeStr(raw.batAdresse,300),
+      batNum:safeStr(raw.batNum,20),
+      batRue:safeStr(raw.batRue,200),
+      batVille:safeStr(raw.batVille,100),
+      batCP:safeStr(raw.batCP,10),
+      batApp:safeStr(raw.batApp,20)||'N/A',
+      clientAdresse:safeStr(raw.clientAdresse,300),
+      clientNum:safeStr(raw.clientNum,20),
+      clientRue:safeStr(raw.clientRue,200),
+      clientVille:safeStr(raw.clientVille,100),
+      clientCP:safeStr(raw.clientCP,10),
+      clientApp:safeStr(raw.clientApp,20)||'N/A',
+      ageConstruction:safeStr(raw.ageConstruction,4),
+      inferredFields:Array.isArray(raw.inferredFields)
+        ?raw.inferredFields.filter(f=>typeof f==='string').map(f=>sanitizeText(f,50)).slice(0,10)
+        :[]
+    };
+    if(!C.batAdresse) throw new Error('Adresse du bâtiment introuvable dans la réponse.');
+
+    D={a1:safeA1,a2:sanitizeText(gv('a2'),150)||'N/A',
+       tel:sanitizeText(gv('tel'),20),
+       email:email.toLowerCase(),prix,
+       rp:sanitizeText(profile.prenom,100),rn:sanitizeText(profile.nom,100),
+       repEmail:profile.email||'',
        calEmail:profile.cal_email||profile.email,
        date,heure,heureFin,ampm,tzOff,
        jour:parseInt(jourN).toString(),mois:moisFR,annee,moisN,jourN,
        dateISO,dateFinISO,dateAffichage,...C};
+
     sv('r_bcp',C.batCP); sv('r_age',C.ageConstruction);
     sv('r_bnum',C.batNum); sv('r_brue',C.batRue); sv('r_ccp',C.clientCP);
+
+    // FIX XSS : escHTML sur toutes les valeurs dans innerHTML
     document.getElementById('resumeCard').innerHTML=`
       <div class="ch">📋 Résumé</div>
-      ${[['👤 Client',a1+(D.a2&&D.a2!=='N/A'?' & '+D.a2:'')],['📧',email],['📞',D.tel||'—'],
-         ['🏢 Bâtiment',C.batAdresse],['🏠 Domicile',C.clientAdresse||'—'],
-         ['📅 Inspection',dateAffichage],['⏱ Durée',heure+' → '+heureFin+' (4h)'],
-         ['🕐 Fuseau',getMtlLabel(date)],['💰 Prix',prix+'$'],['🔑 Représentant',profile.prenom+' '+profile.nom]
-      ].map(([k,v])=>`<div class="sumr"><span class="sumk">${k}</span><span style="font-size:12px">${v||'—'}</span></div>`).join('')}`;
-    if(C.inferredFields?.length){document.getElementById('winf').style.display='flex';document.getElementById('wtxt').textContent='Complété auto: '+C.inferredFields.join(', ');}
+      ${[
+        ['👤 Client',escHTML(D.a1+(D.a2&&D.a2!=='N/A'?' & '+D.a2:''))],
+        ['📧',escHTML(email)],
+        ['📞',escHTML(D.tel||'—')],
+        ['🏢 Bâtiment',escHTML(C.batAdresse)],
+        ['🏠 Domicile',escHTML(C.clientAdresse||'—')],
+        ['📅 Inspection',escHTML(dateAffichage)],
+        ['⏱ Durée',escHTML(heure+' → '+heureFin+' (4h)')],
+        ['🕐 Fuseau',getMtlLabel(date)],
+        ['💰 Prix',escHTML(prix+'$')],
+        ['🔑 Représentant',escHTML(profile.prenom+' '+profile.nom)]
+      ].map(([k,v])=>`<div class="sumr"><span class="sumk">${k}</span><span style="font-size:12px">${v}</span></div>`).join('')}`;
+
+    if(C.inferredFields?.length){
+      document.getElementById('winf').style.display='flex';
+      document.getElementById('wtxt').textContent='Complété auto: '+C.inferredFields.join(', ');
+    }
     showSt('st1','',''); setAP(2);
   }catch(e){ showSt('st1','err','Erreur: '+e.message); document.getElementById('btnA').disabled=false; }
 }
@@ -850,8 +1204,11 @@ Retourne UNIQUEMENT ce JSON:
 // LANCER TOUT — 2 actions (Calendar + Gmail)
 // ═══════════════════════════════════════════════════
 async function lancerTout(){
-  D.batCP=gv('r_bcp')||D.batCP; D.ageConstruction=gv('r_age')||D.ageConstruction;
-  D.batNum=gv('r_bnum')||D.batNum; D.batRue=gv('r_brue')||D.batRue; D.clientCP=gv('r_ccp')||D.clientCP;
+  D.batCP=sanitizeText(gv('r_bcp'),10)||D.batCP;
+  D.ageConstruction=sanitizeText(gv('r_age'),4)||D.ageConstruction;
+  D.batNum=sanitizeText(gv('r_bnum'),20)||D.batNum;
+  D.batRue=sanitizeText(gv('r_brue'),200)||D.batRue;
+  D.clientCP=sanitizeText(gv('r_ccp'),10)||D.clientCP;
   document.getElementById('btnL').disabled=true;
   setAP(3);
   const TASKS=[
@@ -874,19 +1231,26 @@ const tR=id=>{const el=document.getElementById(id);el.className='ti run';el.quer
 const tD=(id,m)=>{const el=document.getElementById(id);el.className='ti dn';el.querySelector('.ti-ic').textContent='✓';el.lastElementChild.textContent=m||'Complété';};
 const tE=(id,m)=>{const el=document.getElementById(id);el.className='ti er';el.querySelector('.ti-ic').textContent='✗';el.lastElementChild.textContent=(m||'Erreur').substring(0,50);};
 
+// FIX : sanitizeText sur les valeurs utilisateur dans le prompt
 async function runCal(){tR('t1');try{
   await callC(`Crée un événement Google Calendar:
 - Titre: "Rendez-vous confirmé : inspection pré achat"
 - Début: ${D.dateISO}, Fin: ${D.dateFinISO}
-- Lieu: ${D.batAdresse}
-- Participant: ${D.email}
+- Lieu: ${sanitizeText(D.batAdresse,300)}
+- Participant: ${sanitizeText(D.email,254)}
 - Couleur: 7
-- Description: "Inspection — ${D.a1}. Prix: ${D.prix}$. Représentant: ${D.rp} ${D.rn}"
-- Calendrier: ${D.calEmail}`,[{type:'url',url:MCP_CAL,name:'calendar-mcp'}]);
+- Description: "Inspection — ${sanitizeText(D.a1,150)}. Prix: ${sanitizeText(D.prix,10)}$. Représentant: ${sanitizeText(D.rp,100)} ${sanitizeText(D.rn,100)}"
+- Calendrier: ${sanitizeText(D.calEmail,254)}`,[{type:'url',url:MCP_CAL,name:'calendar-mcp'}]);
   R.cal=true;tD('t1',D.dateAffichage);}catch(e){tE('t1',e.message);}}
 
+// FIX Injection HTML email : sanitizeText sur toutes les valeurs utilisateur
+// dans le corps HTML de l'email envoyé au client.
 async function runMail(){tR('t2');try{
-  const pn=D.a1?.split(' ')[0]||'';
+  const pn=sanitizeText(D.a1?.split(' ')[0]||'',50);
+  const safeDate=sanitizeText(D.dateAffichage,100);
+  const safeAddr=sanitizeText(D.batAdresse,300);
+  const safeRep=sanitizeText(`${D.rp} ${D.rn}`,150);
+  const safeRepEmail=sanitizeText(D.repEmail,254);
   const html=`<div style="font-family:Arial,sans-serif;max-width:600px;color:#333;line-height:1.7">
 <p>Bonjour ${pn},</p><p>Veuillez accuser réception des documents.</p>
 <p>Vous trouverez ci-joint :</p>
@@ -894,18 +1258,347 @@ async function runMail(){tR('t2');try{
 <li>La <b>facture</b>, payable le jour de l'inspection ;</li>
 <li>Les <b>normes de pratique</b> IBC.</li></ol>
 <p>⚠️ Frais de <b>100 $</b> si annulation à moins de 24h.</p>
-<p>📅 <b>Rendez-vous :</b> ${D.dateAffichage}<br>📍 <b>Adresse :</b> ${D.batAdresse}</p>
+<p>📅 <b>Rendez-vous :</b> ${safeDate}<br>📍 <b>Adresse :</b> ${safeAddr}</p>
 <p>Paiement par <b>Interac, débit ou crédit</b>.<br><br>
-<b>${D.rp} ${D.rn}</b><br><span style="color:#555;font-size:13px">Inspecteur certifié · Kalité Inspection</span><br>
-<a href="mailto:${D.repEmail}" style="color:#1565C0">${D.repEmail}</a></p></div>`;
+<b>${safeRep}</b><br><span style="color:#555;font-size:13px">Inspecteur certifié · Kalité Inspection</span><br>
+<a href="mailto:${safeRepEmail}">${safeRepEmail}</a></p></div>`;
   await callC(`Gmail MCP — envoyer email:
-À: ${D.email}, CC: ${D.repEmail}
+À: ${sanitizeText(D.email,254)}, CC: ${sanitizeText(D.repEmail,254)}
 Sujet: "Rendez-vous confirmé : inspection pré achat"
 HTML: ${html}
 Label: IMPORTANT`,[{type:'url',url:MCP_GMAIL,name:'gmail-mcp'}]);
   R.mail=true;tD('t2',D.email);
   setTimeout(()=>{buildSum();setAP(4);},700);
 }catch(e){tE('t2',e.message);showSt('st3','warn','Email non envoyé auto — le rendez-vous calendrier est quand même créé.');setTimeout(()=>{buildSum();setAP(4);},1000);}}
+
+// ═══════════════════════════════════════════════════
+// QUICK ACCESS — Profils locaux + accès par PIN
+// ═══════════════════════════════════════════════════
+
+/* ── LocalStorage helpers ── */
+function getQuickProfiles(){
+  try{ return JSON.parse(localStorage.getItem(KALITE_QP_KEY)||'[]'); }
+  catch{ return []; }
+}
+function saveQuickProfiles(arr){ localStorage.setItem(KALITE_QP_KEY,JSON.stringify(arr)); }
+function getQPByUser(userId){ return getQuickProfiles().find(p=>p.user_id===userId)||null; }
+
+/* Mettre à jour les tokens Supabase après chaque refresh de session */
+function updateStoredTokens(userId,session){
+  if(!session?.access_token||!session?.refresh_token) return;
+  const arr=getQuickProfiles();
+  const idx=arr.findIndex(p=>p.user_id===userId);
+  if(idx!==-1){
+    arr[idx].access_token=session.access_token;
+    arr[idx].refresh_token=session.refresh_token;
+    arr[idx].attempts=0;
+    arr[idx].locked_until=0;
+    saveQuickProfiles(arr);
+  }
+}
+
+/* Sauvegarder le profil courant dans le cache local (après login réussi) */
+async function saveProfileToQuickAccess(){
+  if(!authUser||!profile) return;
+  const {data:{session}}=await sb.auth.getSession();
+  if(!session) return;
+  const arr=getQuickProfiles();
+  const existingIdx=arr.findIndex(p=>p.user_id===authUser.id);
+  const existing=existingIdx!==-1?arr[existingIdx]:{};
+  const qp={
+    user_id:authUser.id,
+    prenom:profile.prenom||'',
+    nom:profile.nom||'',
+    email:profile.email||authUser.email||'',
+    color:profile.color||COLORS[0],
+    role:profile.role||'Inspecteur',
+    pin_hash:existing.pin_hash||null,
+    pin_salt:existing.pin_salt||null,
+    access_token:session.access_token,
+    refresh_token:session.refresh_token,
+    attempts:0,
+    locked_until:0
+  };
+  if(existingIdx!==-1) arr[existingIdx]=qp;
+  else arr.push(qp);
+  saveQuickProfiles(arr);
+}
+
+/* Décider entre Quick Access et page de login */
+function showEntryPoint(){
+  const qps=getQuickProfiles();
+  if(qps.length===0){
+    showAuth();
+  } else if(qps.length===1){
+    // 1 seul profil → PIN pad direct, sans étape galerie
+    const p=qps[0];
+    if(p.pin_hash){
+      // Afficher brièvement la page quick pour le fond, puis ouvrir le PIN
+      showQuickAccess();
+      setTimeout(()=>showPinEntry(0,'verify'),80);
+    } else {
+      showQuickAccess(); // pas encore de PIN → montrer galerie pour inviter à configurer
+    }
+  } else {
+    // Plusieurs profils → galerie
+    showQuickAccess();
+  }
+}
+
+/* Afficher la galerie de profils rapides */
+function showQuickAccess(){
+  hideAll();
+  document.getElementById('pg-quick').style.display='block';
+  setHeaderAuth(false);
+  renderQuickCards();
+}
+
+function renderQuickCards(){
+  const qps=getQuickProfiles();
+  const now=Date.now();
+  document.getElementById('qa-list').innerHTML=qps.map((p,i)=>{
+    const locked=p.locked_until>now;
+    const remaining=locked?Math.ceil((p.locked_until-now)/60000):0;
+    const initials=escHTML(((p.prenom?.[0]||'?')+(p.nom?.[0]||'')).toUpperCase());
+    return `<div class="qa-card${locked?' qa-locked':''}" onclick="tapProfile(${i})">
+      <div class="qa-av" style="background:${p.color}">${initials}</div>
+      <div class="qa-name">${escHTML(p.prenom)}</div>
+      <div class="qa-role">${escHTML(p.role||'Inspecteur')}</div>
+      ${locked?`<div class="qa-lock-badge">🔒 ${remaining} min</div>`:''}
+    </div>`;
+  }).join('')+
+  `<div class="qa-add" onclick="showAuth()">＋<span>Autre compte</span></div>`;
+}
+
+/* Tap sur une carte de profil */
+function tapProfile(idx){
+  const qps=getQuickProfiles();
+  if(idx<0||idx>=qps.length) return;
+  const p=qps[idx];
+  if(p.locked_until>Date.now()) return;
+  if(!p.pin_hash){
+    // Pas encore de PIN — proposer d'en créer un
+    showPinEntry(idx,'setup');
+  } else {
+    showPinEntry(idx,'verify');
+  }
+}
+
+/* ── PIN — Cryptographie (Web Crypto API) ── */
+async function hashPIN(pin,salt){
+  const enc=new TextEncoder();
+  const buf=await crypto.subtle.digest('SHA-256',enc.encode(pin+salt));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+function randomSalt(){
+  return Array.from(crypto.getRandomValues(new Uint8Array(16))).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+
+/* ── PIN — Affichage ── */
+function showPinEntry(idx,mode){
+  const qps=getQuickProfiles();
+  const p=qps[idx];
+  pinState={digits:[],targetIdx:idx,mode,firstPIN:''};
+  const initials=((p.prenom?.[0]||'?')+(p.nom?.[0]||'')).toUpperCase();
+  document.getElementById('pin-av').textContent=initials;
+  document.getElementById('pin-av').style.background=p.color;
+  document.getElementById('pin-who').textContent=p.prenom+' '+p.nom;
+  document.getElementById('pin-label').textContent=
+    mode==='setup'?'Crée ton PIN à 4 chiffres ✨':
+    mode==='confirm'?'Confirme ton PIN':
+    'Entrer ton PIN';
+  document.getElementById('pin-msg').textContent='';
+  document.getElementById('pin-msg').style.color='';
+  updatePinDots();
+  pinOpen=true;
+  document.getElementById('pin-overlay').style.display='flex';
+}
+
+function updatePinDots(){
+  for(let i=0;i<4;i++){
+    const d=document.getElementById('pd'+i);
+    d.className='pin-dot'+(i<pinState.digits.length?' on':'');
+  }
+}
+
+function pinKey(n){
+  if(pinState.digits.length>=4) return;
+  pinState.digits.push(n);
+  updatePinDots();
+  if(pinState.digits.length===4) setTimeout(()=>processPIN(),160);
+}
+
+function pinDel(){
+  if(pinState.digits.length>0){
+    pinState.digits.pop();
+    updatePinDots();
+    document.getElementById('pin-msg').textContent='';
+  }
+}
+
+function cancelPin(){
+  pinOpen=false;
+  document.getElementById('pin-overlay').style.display='none';
+  pinState={digits:[],targetIdx:-1,mode:'verify',firstPIN:''};
+}
+
+function pinErr(msg){
+  document.getElementById('pin-msg').style.color='var(--red)';
+  document.getElementById('pin-msg').textContent=msg;
+  for(let i=0;i<4;i++) document.getElementById('pd'+i).className='pin-dot err';
+  setTimeout(()=>{ pinState.digits=[]; updatePinDots(); },500);
+}
+
+/* ── PIN — Traitement ── */
+async function processPIN(){
+  const pin=pinState.digits.join('');
+  const {mode,targetIdx,firstPIN}=pinState;
+
+  if(mode==='verify'){
+    await verifyPINAndLogin(targetIdx,pin);
+  } else if(mode==='setup'){
+    pinState.firstPIN=pin;
+    pinState.digits=[];
+    pinState.mode='confirm';
+    document.getElementById('pin-label').textContent='Confirme ton PIN';
+    document.getElementById('pin-msg').textContent='';
+    updatePinDots();
+  } else if(mode==='confirm'){
+    if(pin===firstPIN){
+      await commitNewPIN(targetIdx,pin);
+    } else {
+      pinState.digits=[];
+      pinState.mode='setup';
+      pinState.firstPIN='';
+      pinErr('PIN différent — recommence.');
+      document.getElementById('pin-label').textContent='Crée ton PIN à 4 chiffres ✨';
+    }
+  }
+}
+
+async function verifyPINAndLogin(idx,pin){
+  const arr=getQuickProfiles();
+  const p=arr[idx];
+  if(p.locked_until>Date.now()){
+    const min=Math.ceil((p.locked_until-Date.now())/60000);
+    pinErr(`Bloqué encore ${min} min`);
+    return;
+  }
+  const hash=await hashPIN(pin,p.pin_salt);
+  if(hash!==p.pin_hash){
+    arr[idx].attempts=(arr[idx].attempts||0)+1;
+    if(arr[idx].attempts>=MAX_PIN_ATTEMPTS){
+      arr[idx].locked_until=Date.now()+LOCKOUT_MS;
+      arr[idx].attempts=0;
+      saveQuickProfiles(arr);
+      pinErr('Trop de tentatives — bloqué 5 min.');
+    } else {
+      const left=MAX_PIN_ATTEMPTS-arr[idx].attempts;
+      saveQuickProfiles(arr);
+      pinErr(`PIN incorrect — ${left} essai${left>1?'s':''} restant${left>1?'s':''}.`);
+    }
+    return;
+  }
+  // PIN correct
+  arr[idx].attempts=0; arr[idx].locked_until=0;
+  saveQuickProfiles(arr);
+  document.getElementById('pin-msg').style.color='#86EFAC';
+  document.getElementById('pin-msg').textContent='✓ Connexion...';
+  try{
+    const {error}=await sb.auth.setSession({
+      access_token:p.access_token,
+      refresh_token:p.refresh_token
+    });
+    if(error) throw error;
+    pinOpen=false;
+  document.getElementById('pin-overlay').style.display='none';
+    // onAuthStateChange → afterLogin() prend le relais
+  }catch(e){
+    document.getElementById('pin-overlay').style.display='none';
+    showAuth();
+    showSt('st-auth','warn','Session expirée — reconnecte-toi pour réactiver l\'accès rapide.');
+  }
+}
+
+async function commitNewPIN(idx,pin){
+  const arr=getQuickProfiles();
+  const salt=randomSalt();
+  const hash=await hashPIN(pin,salt);
+  arr[idx].pin_hash=hash;
+  arr[idx].pin_salt=salt;
+  arr[idx].attempts=0;
+  arr[idx].locked_until=0;
+  saveQuickProfiles(arr);
+  pinOpen=false;
+  document.getElementById('pin-overlay').style.display='none';
+  pinState={digits:[],targetIdx:-1,mode:'verify',firstPIN:''};
+  // Effacer le flag "dismissed" puisque le PIN est maintenant configuré
+  if(authUser) localStorage.removeItem('kalite_pin_dismissed_'+authUser.id);
+  // Cacher la bannière si elle était visible
+  document.getElementById('pin-banner').style.display='none';
+  // Rafraîchir la carte PIN si on est sur la page settings
+  if(document.getElementById('pg-settings').classList.contains('on')){
+    loadSettings();
+    showSt('st-set','ok','✅ PIN d\'accès rapide activé !');
+  }
+}
+
+/* ── Bannière d'invitation PIN ── */
+function maybeShowPinBanner(){
+  if(!authUser) return;
+  const qp=getQPByUser(authUser.id);
+  // Montrer seulement si : profil local existe, pas de PIN, pas déjà rejeté
+  const dismissed=localStorage.getItem('kalite_pin_dismissed_'+authUser.id);
+  if(qp && !qp.pin_hash && !dismissed){
+    document.getElementById('pin-banner').style.display='flex';
+  }
+}
+
+function dismissPinBanner(){
+  document.getElementById('pin-banner').style.display='none';
+  // Se souvenir que l'utilisateur a refusé (pour ne pas re-afficher à chaque fois)
+  if(authUser) localStorage.setItem('kalite_pin_dismissed_'+authUser.id,'1');
+}
+
+function activatePinFromBanner(){
+  document.getElementById('pin-banner').style.display='none';
+  const arr=getQuickProfiles();
+  const idx=arr.findIndex(p=>p.user_id===authUser?.id);
+  if(idx===-1) return;
+  showPinEntry(idx,'setup');
+}
+
+/* ── PIN — Gestion depuis les paramètres ── */
+function startChangePinFlow(){
+  const arr=getQuickProfiles();
+  const idx=arr.findIndex(p=>p.user_id===authUser?.id);
+  if(idx===-1) return;
+  showPinEntry(idx,'setup');
+  document.getElementById('pin-label').textContent='Nouveau PIN (4 chiffres)';
+}
+
+function startActivatePinFlow(){
+  const arr=getQuickProfiles();
+  const idx=arr.findIndex(p=>p.user_id===authUser?.id);
+  if(idx===-1) return;
+  showPinEntry(idx,'setup');
+}
+
+function removeQuickProfileFromSettings(){
+  if(!confirm('Désactiver l\'accès rapide par PIN pour ce compte ?')) return;
+  const arr=getQuickProfiles().filter(p=>p.user_id!==authUser?.id);
+  saveQuickProfiles(arr);
+  loadSettings();
+  showSt('st-set','ok','Accès rapide désactivé.');
+}
+
+/* ── PIN — Saisie clavier (desktop) ── */
+document.addEventListener('keydown',e=>{
+  if(!pinOpen) return; // utilise le flag dédié, pas style.display
+  if(e.key>='0'&&e.key<='9'){ e.preventDefault(); pinKey(parseInt(e.key)); }
+  else if(e.key==='Backspace'){ e.preventDefault(); pinDel(); }
+  else if(e.key==='Escape'){ cancelPin(); }
+});
 
 // ═══════════════════════════════════════════════════
 // REGISTRE
@@ -916,17 +1609,20 @@ async function saveRegistre(){
   if(!pid) return;
   try{
     await sb.from('registre').insert([{
-      profile_id:pid,client_nom:D.a1+(D.a2&&D.a2!=='N/A'?' & '+D.a2:''),
-      client_email:D.email,client_tel:D.tel||null,batiment:D.batAdresse,
-      date_inspection:D.dateAffichage,prix:D.prix,
+      profile_id:pid,
+      client_nom:sanitizeText(D.a1+(D.a2&&D.a2!=='N/A'?' & '+D.a2:''),200),
+      client_email:D.email||null,
+      client_tel:D.tel||null,
+      batiment:sanitizeText(D.batAdresse,300),
+      date_inspection:sanitizeText(D.dateAffichage,100),
+      prix:D.prix,
       statut_calendrier:R.cal||false,
       statut_email:R.mail||false
     }]);
   }catch(e){console.warn('Registre:',e.message);}
 }
 
-// BUG FIX: showSt('reg-empty','','') only cleared innerHTML but left element visible.
-// Use style.display directly for visibility control.
+// FIX : style.display direct — showSt ne cachait pas l'élément
 async function loadRegistre(){
   if(!sb||!profile) return;
   document.getElementById('reg-empty').style.display='none';
@@ -939,7 +1635,8 @@ async function loadRegistre(){
     renderRegistre();
   }catch(e){
     const empty=document.getElementById('reg-empty');
-    empty.innerHTML=`<p style="font-size:28px;margin-bottom:8px;opacity:.4">📋</p><p>Erreur: ${e.message}</p>`;
+    // FIX XSS : escHTML sur le message d'erreur
+    empty.innerHTML=`<p style="font-size:28px;margin-bottom:8px;opacity:.4">📋</p><p>Erreur: ${escHTML(e.message)}</p>`;
     empty.style.display='block';
   }
 }
@@ -951,7 +1648,8 @@ function filterReg(f,btn){
   renderRegistre();
 }
 
-// BUG FIX: filter logic updated — only 2 statuses now (calendrier + email).
+// FIX XSS : escHTML sur tous les champs r.* provenant de Supabase.
+// FIX : filtre 'ok'/'partial' mis à jour pour 2 statuts seulement.
 function renderRegistre(){
   const list=document.getElementById('reg-list'),empty=document.getElementById('reg-empty');
   let data=[...regData];
@@ -971,20 +1669,21 @@ function renderRegistre(){
       {l:'📅 Cal.',ok:r.statut_calendrier},
       {l:'📧 Email',ok:r.statut_email}
     ];
-    const dt=new Date(r.created_at).toLocaleDateString('fr-CA',{day:'numeric',month:'short',year:'numeric'});
+    let dt='—';
+    try{ dt=new Date(r.created_at).toLocaleDateString('fr-CA',{day:'numeric',month:'short',year:'numeric'}); }catch(e){}
     return `<div class="reg-item" onclick="toggleReg('rd-${i}')">
       <div style="display:flex;justify-content:space-between;margin-bottom:4px">
-        <div style="font-weight:600;font-size:13.5px">${r.client_nom||'—'}</div>
-        <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:14px;color:var(--accent)">${r.prix?r.prix+'$':''}</div>
+        <div style="font-weight:600;font-size:13.5px">${escHTML(r.client_nom||'—')}</div>
+        <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:14px;color:var(--accent)">${escHTML(r.prix?r.prix+'$':'')}</div>
       </div>
-      <div style="font-size:11.5px;color:var(--muted2);margin-bottom:6px">🏢 ${r.batiment||'—'} · 📅 ${r.date_inspection||'—'}</div>
+      <div style="font-size:11.5px;color:var(--muted2);margin-bottom:6px">🏢 ${escHTML(r.batiment||'—')} · 📅 ${escHTML(r.date_inspection||'—')}</div>
       <div style="display:flex;align-items:center;justify-content:space-between">
         <div class="reg-badges">${badges.map(b=>`<span class="rbadge ${b.ok?'ok':'ko'}">${b.l}</span>`).join('')}</div>
-        <span style="font-size:10px;color:var(--muted)">${dt}</span>
+        <span style="font-size:10px;color:var(--muted)">${escHTML(dt)}</span>
       </div>
       <div class="reg-detail" id="rd-${i}">
         <div style="font-size:11.5px;color:var(--muted2);line-height:1.9">
-          <div>📧 ${r.client_email||'—'} · 📞 ${r.client_tel||'—'}</div>
+          <div>📧 ${escHTML(r.client_email||'—')} · 📞 ${escHTML(r.client_tel||'—')}</div>
         </div>
       </div>
     </div>`;
@@ -996,20 +1695,25 @@ function toggleReg(id){const el=document.getElementById(id);if(el)el.classList.t
 // ═══════════════════════════════════════════════════
 // SUCCESS SUMMARY & RESET
 // ═══════════════════════════════════════════════════
+// FIX XSS : escHTML sur toutes les valeurs D.*
 function buildSum(){
   const ck=v=>v?'✅':'⚠️ Vérifier';
   document.getElementById('summ').innerHTML=[
-    ['Client',D.a1+(D.a2&&D.a2!=='N/A'?' & '+D.a2:'')],
-    ['Courriel',D.email],['Téléphone',D.tel||'—'],
-    ['Bâtiment',D.batAdresse],['Date',D.dateAffichage],
-    ['Fuseau',D.tzOff+' (Mtl)'],['Prix',D.prix+'$'],
-    ['📅 Calendrier',ck(R.cal)],['📧 Email',ck(R.mail)],
+    ['Client',escHTML(D.a1+(D.a2&&D.a2!=='N/A'?' & '+D.a2:''))],
+    ['Courriel',escHTML(D.email)],
+    ['Téléphone',escHTML(D.tel||'—')],
+    ['Bâtiment',escHTML(D.batAdresse)],
+    ['Date',escHTML(D.dateAffichage)],
+    ['Fuseau',escHTML(D.tzOff+' (Mtl)')],
+    ['Prix',escHTML(D.prix+'$')],
+    ['📅 Calendrier',ck(R.cal)],
+    ['📧 Email',ck(R.mail)],
   ].map(([k,v])=>`<div class="sumr"><span class="sumk">${k}</span><span>${v||'—'}</span></div>`).join('');
 }
 
-// BUG FIX: tzbadge et winf n'étaient pas remis à zéro entre les inspections.
+// FIX : tzbadge, winf et wtxt remis à zéro entre inspections
 function resetApp(){
-  D={};R={};
+  D={}; R={};
   ['a1','a2','tel','email','bat','cli','prix','iheurefin'].forEach(id=>sv(id,''));
   document.getElementById('idate').value='';
   document.getElementById('iheure').value='10:00';
@@ -1017,8 +1721,8 @@ function resetApp(){
   document.getElementById('winf').style.display='none';
   document.getElementById('wtxt').textContent='';
   document.getElementById('btnA').disabled=false;
-  if(document.getElementById('btnL'))document.getElementById('btnL').disabled=false;
-  showSt('st1','','');showSt('st2','','');setAP(1);
+  if(document.getElementById('btnL')) document.getElementById('btnL').disabled=false;
+  showSt('st1','',''); showSt('st2','',''); setAP(1);
 }
 
 // ═══════════════════════════════════════════════════
