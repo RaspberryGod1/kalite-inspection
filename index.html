@@ -1047,7 +1047,8 @@ let sb, authUser=null, profile=null, apiKey=null;
 let setupColor=COLORS[0], settingsColor=COLORS[0];
 let D={}, R={}, regData=[], regFilter='all';
 let pinState={digits:[],targetIdx:-1,mode:'verify',firstPIN:''};
-let pinOpen=false; // flag fiable pour le handler clavier
+let pinOpen=false;        // overlay PIN visible
+let pinLoggingIn=false;   // en cours d'auth via PIN → bloquer showEntryPoint
 
 // ═══════════════════════════════════════════════════
 // INIT
@@ -1067,7 +1068,8 @@ async function init(){
     } else {
       authUser=null; profile=null; apiKey=null;
       D={}; R={}; regData=[];
-      showEntryPoint(); // Quick Access ou Login selon les profils locaux
+      // Ne pas rediriger si on est en plein auth par PIN (SIGNED_OUT temporaire)
+      if(!pinLoggingIn) showEntryPoint();
     }
   });
   const {data:{session}}=await sb.auth.getSession();
@@ -1749,9 +1751,9 @@ function showEntryPoint(){
     // 1 seul profil → PIN pad direct, sans étape galerie
     const p=qps[0];
     if(p.pin_hash){
-      // Afficher brièvement la page quick pour le fond, puis ouvrir le PIN
       showQuickAccess();
-      setTimeout(()=>showPinEntry(0,'verify'),80);
+      // Garde : n'ouvre le PIN que si l'utilisateur n'est pas déjà authentifié
+      setTimeout(()=>{ if(!authUser && !pinLoggingIn) showPinEntry(0,'verify'); },80);
     } else {
       showQuickAccess(); // pas encore de PIN → montrer galerie pour inviter à configurer
     }
@@ -1920,6 +1922,7 @@ async function verifyPINAndLogin(idx,pin){
   saveQuickProfiles(arr);
   document.getElementById('pin-msg').style.color='#86EFAC';
   document.getElementById('pin-msg').textContent='✓ Connexion...';
+  pinLoggingIn=true; // bloque tout rappel de showEntryPoint pendant l'auth
   try{
     const {error}=await sb.auth.setSession({
       access_token:p.access_token,
@@ -1927,12 +1930,15 @@ async function verifyPINAndLogin(idx,pin){
     });
     if(error) throw error;
     pinOpen=false;
-  document.getElementById('pin-overlay').style.display='none';
-    // onAuthStateChange → afterLogin() prend le relais
+    pinLoggingIn=false;
+    document.getElementById('pin-overlay').style.display='none';
+    // onAuthStateChange(SIGNED_IN) → afterLogin() prend le relais
   }catch(e){
+    pinLoggingIn=false;
+    pinOpen=false;
     document.getElementById('pin-overlay').style.display='none';
     showAuth();
-    showSt('st-auth','warn','Session expirée — reconnecte-toi pour réactiver l\'accès rapide.');
+    showSt('st-auth','warn','Session expirée — reconnecte-toi une fois pour réactiver l\'accès rapide.');
   }
 }
 
