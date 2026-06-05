@@ -988,24 +988,16 @@ select.fv option{background:#121929;}
   <!-- Connexion QuickBooks -->
   <div class="card">
     <div class="ch">💼 QuickBooks Online</div>
-    <p style="font-size:12px;color:var(--muted2);margin-bottom:12px">Connecte ton compte QuickBooks pour créer les clients et les factures automatiquement.</p>
-    <div class="f">
-      <label>Access Token QuickBooks</label>
-      <input class="fv" id="set-qb-token" type="password" maxlength="2000" placeholder="eyJhbGciOiJkaXIiLCJlbmMiOiJBMTI4Q0JDLUhTMjU2In0…">
-      <div class="hint">Va sur <a href="https://developer.intuit.com/app/developer/playground" target="_blank" rel="noopener">developer.intuit.com/playground</a> → Auth, sélectionne QuickBooks Online → Get authorization code → Copy Access Token</div>
-    </div>
-    <div class="f">
-      <label>Company ID (Realm ID)</label>
-      <input class="fv" id="set-qb-realm" type="text" maxlength="50" placeholder="9130355905390217">
-      <div class="hint">Affiché dans l'URL QuickBooks : qbo.intuit.com/app/homepage?realmid=<strong>ICI</strong></div>
-    </div>
+    <p style="font-size:12px;color:var(--muted2);margin-bottom:12px">Connecte <strong>ton propre compte</strong> QuickBooks — chaque inspecteur a le sien. La connexion se renouvelle automatiquement.</p>
+    <div id="qb-status-area"></div>
+    <button class="btn" style="background:#2CA01C;color:#fff;margin-bottom:16px;width:100%" onclick="connectQuickBooks()">💼 Connecter mon compte QuickBooks</button>
     <div class="f">
       <label>ID Article de service <span style="color:var(--muted)">(pour la ligne de facture)</span></label>
       <input class="fv" id="set-qb-item" type="text" maxlength="20" placeholder="1">
       <div class="hint">Dans QB → Ventes → Produits et services → clic sur ton service → l'ID est dans l'URL : <strong>/edit/N</strong>. Par défaut : 1.</div>
     </div>
     <div id="st-qb"></div>
-    <button class="btn btn-gh" style="margin-top:10px;width:auto" onclick="saveQBSettings()">💾 Sauvegarder QuickBooks</button>
+    <button class="btn btn-gh" style="margin-top:10px;width:auto" onclick="saveQBItemSettings()">💾 Sauvegarder l'ID article</button>
   </div>
 
   <div id="st-set"></div>
@@ -1172,7 +1164,12 @@ async function loadProfile(){
       return;
     }
     profile=data;
-    showMainApp();
+    const qbP=new URLSearchParams(window.location.search);
+    if(qbP.has('code')&&qbP.has('realmId')){
+      await handleQBCallback(qbP);
+    } else {
+      showMainApp();
+    }
   }catch(e){
     console.error(e);
     showAuth();
@@ -1399,10 +1396,16 @@ function loadSettings(){
   // Champs connexions
   document.getElementById('set-drive').value=profile.drive_folder_id||'';
   document.getElementById('set-normes').value=profile.normes_file_id||'';
-  document.getElementById('set-qb-token').value='';
-  document.getElementById('set-qb-token').placeholder=profile.qb_access_token?'••• Token configuré ✓':'eyJhbGciOi...';
-  document.getElementById('set-qb-realm').value=profile.qb_realm_id||'';
   document.getElementById('set-qb-item').value=profile.qb_item_id||'';
+  const qbArea=document.getElementById('qb-status-area');
+  if(profile.qb_access_token&&profile.qb_realm_id){
+    const expired=profile.qb_token_expiry&&Date.now()>Number(profile.qb_token_expiry);
+    qbArea.innerHTML=expired
+      ?`<div class="st warn" style="margin-bottom:10px">⚠️ Token QB expiré — clique "Connecter" pour renouveler</div>`
+      :`<div class="st ok" style="margin-bottom:10px">✅ QuickBooks connecté — Compagnie #${escHTML(String(profile.qb_realm_id))}</div>`;
+  } else {
+    qbArea.innerHTML=`<div class="st load" style="margin-bottom:10px">⚪ QuickBooks non connecté</div>`;
+  }
   // Statut Google
   const gArea=document.getElementById('google-status-area');
   if(profile.google_access_token && Date.now()<(profile.google_token_expiry||0)){
@@ -1812,7 +1815,7 @@ async function runDriveFolder(){tR('t2');try{
 
 // ─── t3 : QuickBooks — Créer client ───────────────
 async function runQBCustomer(){tR('t3');try{
-  const{token,realmId}=getQBCreds();
+  const{token,realmId}=await getQBCreds();
   const base=`https://quickbooks.api.intuit.com/v3/company/${realmId}`;
   let customerId;
   try{
@@ -1843,7 +1846,7 @@ async function runQBCustomer(){tR('t3');try{
 // ─── t4 : QuickBooks — Créer facture ──────────────
 async function runQBInvoice(){tR('t4');try{
   if(!R.qbCustomerId) throw new Error('Client QB manquant (étape précédente échouée)');
-  const{token,realmId}=getQBCreds();
+  const{token,realmId}=await getQBCreds();
   const res=await fetchJSON(`https://quickbooks.api.intuit.com/v3/company/${realmId}/invoice?minorversion=70`,{
     method:'POST',
     headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json','Accept':'application/json'},
@@ -1966,7 +1969,7 @@ async function runDriveNormes(){tR('t7');try{
 async function runDriveInvoice(){tR('t8');try{
   if(!R.qbInvoiceId) throw new Error('Facture QB non créée (étape t4)');
   if(!R.driveFolderId) throw new Error('Dossier Drive non créé (étape t2)');
-  const{token}=getQBCreds();
+  const{token}=await getQBCreds();
   const tok=getGToken();
   const qbResp=await fetch(R.qbInvoicePdfUrl,{headers:{'Authorization':'Bearer '+token,'Accept':'application/pdf'}});
   if(!qbResp.ok) throw new Error(`Impossible de récupérer la facture QB (HTTP ${qbResp.status})`);
@@ -2569,22 +2572,77 @@ function connectGoogle(){
 }
 
 // ═══════════════════════════════════════════════════
-// QUICKBOOKS — Sauvegarder identifiants
+// QUICKBOOKS — OAuth 2.0 par inspecteur
 // ═══════════════════════════════════════════════════
-async function saveQBSettings(){
-  const token=(document.getElementById('set-qb-token').value||'').trim();
-  const realm=(document.getElementById('set-qb-realm').value||'').trim();
+const QB_CLIENT_ID='ABsBNsF9jQc699D3hy3iiCAtD8vUX6bTmKL5Z0E24WiZQnVwbN';
+
+function connectQuickBooks(){
+  if(!authUser) return;
+  const redirectUri=window.location.origin+window.location.pathname;
+  const state=Math.random().toString(36).substring(2)+Math.random().toString(36).substring(2);
+  sessionStorage.setItem('qb_state',state);
+  sessionStorage.setItem('qb_user',authUser.id);
+  const url='https://appcenter.intuit.com/connect/oauth2?'+new URLSearchParams({
+    client_id:QB_CLIENT_ID,
+    scope:'com.intuit.quickbooks.accounting',
+    redirect_uri:redirectUri,
+    response_type:'code',
+    state
+  }).toString();
+  window.location.href=url;
+}
+
+async function handleQBCallback(params){
+  const code=params.get('code');
+  const realmId=params.get('realmId');
+  const state=params.get('state');
+  const savedState=sessionStorage.getItem('qb_state');
+  sessionStorage.removeItem('qb_state');
+  sessionStorage.removeItem('qb_user');
+  window.history.replaceState({},'',window.location.pathname);
+  showMainApp();
+  nav('settings');
+  showSt('st-qb','load','Connexion QuickBooks en cours...');
+  if(state!==savedState){showSt('st-qb','err','Erreur de sécurité — réessaie.');return;}
+  try{
+    const redirectUri=window.location.origin+window.location.pathname;
+    const res=await fetch(`${SURL}/functions/v1/qb-oauth`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+SKEY},
+      body:JSON.stringify({action:'exchange',code,realmId,redirectUri,userId:authUser.id})
+    });
+    const d=await res.json();
+    if(!d.ok) throw new Error(d.error);
+    profile.qb_access_token=d.access_token;
+    profile.qb_refresh_token=d.refresh_token;
+    profile.qb_realm_id=realmId;
+    profile.qb_token_expiry=d.expiry;
+    loadSettings();
+    showSt('st-qb','ok','✅ QuickBooks connecté ! Compagnie #'+escHTML(realmId));
+  }catch(e){showSt('st-qb','err','Erreur connexion QB: '+e.message);}
+}
+
+async function refreshQBToken(){
+  if(!profile?.qb_refresh_token) throw new Error('Token QB expiré — reconnecte ton compte dans Paramètres');
+  const res=await fetch(`${SURL}/functions/v1/qb-oauth`,{
+    method:'POST',
+    headers:{'Content-Type':'application/json','Authorization':'Bearer '+SKEY},
+    body:JSON.stringify({action:'refresh',refreshToken:profile.qb_refresh_token,realmId:profile.qb_realm_id,userId:authUser.id})
+  });
+  const d=await res.json();
+  if(!d.ok) throw new Error('Impossible de renouveler le token QB — reconnecte ton compte dans Paramètres');
+  profile.qb_access_token=d.access_token;
+  if(d.refresh_token) profile.qb_refresh_token=d.refresh_token;
+  profile.qb_token_expiry=d.expiry;
+}
+
+async function saveQBItemSettings(){
   const itemId=(document.getElementById('set-qb-item').value||'').trim();
-  if(!realm){showSt('st-qb','err','Le Company ID (Realm ID) est requis.');return;}
   showSt('st-qb','load','Sauvegarde...');
-  const upd={qb_realm_id:realm,qb_item_id:itemId||'1'};
-  if(token) upd.qb_access_token=token;
-  const{data,error}=await sb.from('profiles').update(upd).eq('user_id',authUser.id).select();
+  const{data,error}=await sb.from('profiles').update({qb_item_id:itemId||'1'}).eq('user_id',authUser.id).select();
   if(error){showSt('st-qb','err','Erreur: '+error.message);return;}
-  profile={...profile,...(data?.[0]||upd)};
-  document.getElementById('set-qb-token').value='';
-  document.getElementById('set-qb-token').placeholder='••• Token configuré ✓';
-  showSt('st-qb','ok','✅ QuickBooks configuré ! ⚠️ Le token expire après 1h — renouvelle-le si besoin.');
+  profile={...profile,...(data?.[0]||{qb_item_id:itemId||'1'})};
+  showSt('st-qb','ok','✅ ID article sauvegardé.');
 }
 
 // ═══════════════════════════════════════════════════
@@ -2595,9 +2653,12 @@ function getGToken(){
   if(profile.google_token_expiry&&Date.now()>Number(profile.google_token_expiry)) throw new Error('Token Google expiré — reconnecte ton compte dans Paramètres');
   return profile.google_access_token;
 }
-function getQBCreds(){
-  if(!profile?.qb_access_token) throw new Error('Token QuickBooks non configuré — va dans Paramètres → QuickBooks');
-  if(!profile?.qb_realm_id) throw new Error('Company ID QuickBooks manquant — configure-le dans Paramètres');
+async function getQBCreds(){
+  if(!profile?.qb_access_token) throw new Error('QuickBooks non connecté — va dans Paramètres → Connecter mon compte QuickBooks');
+  if(!profile?.qb_realm_id) throw new Error('Company ID QuickBooks manquant — reconnecte ton compte dans Paramètres');
+  if(profile.qb_token_expiry && Date.now() > Number(profile.qb_token_expiry)-300000){
+    await refreshQBToken();
+  }
   return{token:profile.qb_access_token,realmId:profile.qb_realm_id};
 }
 
