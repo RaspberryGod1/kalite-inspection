@@ -11,12 +11,19 @@
 -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'none';
-  script-src 'unsafe-inline' https://cdn.jsdelivr.net;
+  script-src 'unsafe-inline' https://cdn.jsdelivr.net https://accounts.google.com;
   style-src 'unsafe-inline' https://fonts.googleapis.com;
   font-src https://fonts.gstatic.com;
   connect-src https://ptbanxacmtvifjucvwzs.supabase.co
               wss://ptbanxacmtvifjucvwzs.supabase.co
               https://api.anthropic.com
+              https://api.pdf.co
+              https://pdf-temp-files.s3.amazonaws.com
+              https://www.googleapis.com
+              https://gmail.googleapis.com
+              https://quickbooks.api.intuit.com
+              https://oauth.platform.intuit.com
+              https://accounts.google.com
               https://calendarmcp.googleapis.com
               https://gmailmcp.googleapis.com;
   img-src data: 'self';
@@ -25,6 +32,7 @@
 ">
 <title>Kalité Inspection</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://accounts.google.com/gsi/client" async></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,300&display=swap');
 :root{
@@ -877,7 +885,7 @@ select.fv option{background:#121929;}
     <div id="st2"></div>
     <div class="arow">
       <button class="btn btn-gh" onclick="goBack()">← Modifier</button>
-      <button class="btn btn-g" id="btnL" onclick="lancerTout()">🚀 Lancer les 2 actions</button>
+      <button class="btn btn-g" id="btnL" onclick="lancerTout()">🚀 Lancer les 9 actions</button>
     </div>
   </div>
 
@@ -894,7 +902,7 @@ select.fv option{background:#121929;}
       <div class="sh">
         <div class="sr" id="sring" style="background:var(--green)">✓</div>
         <h2>Tout est complété !</h2>
-        <p>Les 2 actions ont été exécutées.<br>Le client a reçu son email. 🎉</p>
+        <p>Les 9 actions ont été exécutées.<br>Le client a reçu son email avec ses 3 documents. 🎉</p>
       </div>
       <div class="dvd"></div>
       <div id="summ"></div>
@@ -953,10 +961,51 @@ select.fv option{background:#121929;}
   <div class="card">
     <div class="ch">🔌 Mes connexions</div>
     <div class="f">
-      <label>Courriel Google (Calendar &amp; Gmail) *</label>
+      <label>Courriel Google (Calendar, Drive &amp; Gmail) *</label>
       <input class="fv" id="set-cal" type="email" maxlength="254" autocomplete="email">
-      <div class="hint">Ton adresse Google utilisée pour créer les événements et envoyer les emails</div>
+      <div class="hint">Ton adresse Google associée à tes comptes Calendar, Drive et Gmail</div>
     </div>
+  </div>
+
+  <!-- Connexion Google -->
+  <div class="card">
+    <div class="ch">🔵 Google Calendar · Drive · Gmail</div>
+    <div id="google-status-area"></div>
+    <div class="f">
+      <label>Dossier Drive "Documents Clients" (ID)</label>
+      <input class="fv" id="set-drive" type="text" maxlength="100" placeholder="12Of-vY4w-PEuq4HoWSjmFHIIYANyUAFR">
+      <div class="hint">Ouvre le dossier sur drive.google.com → l'ID est dans l'URL après /folders/</div>
+    </div>
+    <div class="f">
+      <label>Fichier "Normes de pratique" (ID Drive)</label>
+      <input class="fv" id="set-normes" type="text" maxlength="100" placeholder="1aBcDeFgHiJkLmNoPqRsTuVwXyZ...">
+      <div class="hint">Ouvre le fichier sur Drive → partager → copier le lien → l'ID est dans l'URL /d/<strong>ICI</strong>/</div>
+    </div>
+    <button class="btn btn-b" style="margin-top:12px" onclick="connectGoogle()">🔵 Connecter mon compte Google</button>
+    <div id="st-google" style="margin-top:8px"></div>
+  </div>
+
+  <!-- Connexion QuickBooks -->
+  <div class="card">
+    <div class="ch">💼 QuickBooks Online</div>
+    <p style="font-size:12px;color:var(--muted2);margin-bottom:12px">Connecte ton compte QuickBooks pour créer les clients et les factures automatiquement.</p>
+    <div class="f">
+      <label>Access Token QuickBooks</label>
+      <input class="fv" id="set-qb-token" type="password" maxlength="2000" placeholder="eyJhbGciOiJkaXIiLCJlbmMiOiJBMTI4Q0JDLUhTMjU2In0…">
+      <div class="hint">Va sur <a href="https://developer.intuit.com/app/developer/playground" target="_blank" rel="noopener">developer.intuit.com/playground</a> → Auth, sélectionne QuickBooks Online → Get authorization code → Copy Access Token</div>
+    </div>
+    <div class="f">
+      <label>Company ID (Realm ID)</label>
+      <input class="fv" id="set-qb-realm" type="text" maxlength="50" placeholder="9130355905390217">
+      <div class="hint">Affiché dans l'URL QuickBooks : qbo.intuit.com/app/homepage?realmid=<strong>ICI</strong></div>
+    </div>
+    <div class="f">
+      <label>ID Article de service <span style="color:var(--muted)">(pour la ligne de facture)</span></label>
+      <input class="fv" id="set-qb-item" type="text" maxlength="20" placeholder="1">
+      <div class="hint">Dans QB → Ventes → Produits et services → clic sur ton service → l'ID est dans l'URL : <strong>/edit/N</strong>. Par défaut : 1.</div>
+    </div>
+    <div id="st-qb"></div>
+    <button class="btn btn-gh" style="margin-top:10px;width:auto" onclick="saveQBSettings()">💾 Sauvegarder QuickBooks</button>
   </div>
 
   <div id="st-set"></div>
@@ -966,6 +1015,24 @@ select.fv option{background:#121929;}
     <div class="ch">🔑 Accès rapide par PIN</div>
     <p style="font-size:12px;color:var(--muted2);margin-bottom:12px">Accède à ton profil en 4 chiffres depuis l'écran d'accueil — sans entrer ton mot de passe.</p>
     <div id="pin-settings-content"></div>
+  </div>
+
+  <!-- Visible seulement pour le rôle Administrateur -->
+  <div class="card" id="admin-card" style="display:none;margin-top:16px;border-color:rgba(245,158,11,.15)">
+    <div class="ch" style="color:var(--amber)">🔧 Administration — Clés partagées</div>
+    <p style="font-size:12px;color:var(--muted2);margin-bottom:14px">Ces clés sont utilisées par <strong>tous</strong> les inspecteurs. Tu n'as besoin de les configurer qu'une seule fois.</p>
+    <div class="f">
+      <label>Clé API PDF.co</label>
+      <input class="fv" id="set-pdfco" type="password" maxlength="200" placeholder="••••••••••••">
+      <div class="hint">Va sur <a href="https://app.pdf.co" target="_blank" rel="noopener">app.pdf.co</a> → ton profil → API Key</div>
+    </div>
+    <div class="f" style="margin-top:10px">
+      <label>Google OAuth Client ID (partagé)</label>
+      <input class="fv" id="set-gclient" type="text" maxlength="200" placeholder="123456789-abc.apps.googleusercontent.com">
+      <div class="hint">Google Cloud Console → APIs & Services → Credentials → OAuth 2.0 Client ID. Ajoute <strong>ton domaine Netlify</strong> comme Authorized JavaScript origin.</div>
+    </div>
+    <div id="st-admin"></div>
+    <button class="btn btn-gh" style="margin-top:10px;width:auto" onclick="saveAdminSettings()">💾 Sauvegarder les clés</button>
   </div>
 
   <div class="card" style="margin-top:16px;border-color:rgba(245,158,11,.18)">
@@ -1043,11 +1110,12 @@ function extractJSON(text){
 // ═══════════════════════════════════════════════════
 // STATE
 // ═══════════════════════════════════════════════════
-let sb, authUser=null, profile=null, apiKey=null;
+let sb, authUser=null, profile=null, apiKey=null, pdfCoKey=null, googleClientId='38982603264-4b5scu5gods9geu8hnour2fb5j5pt19n.apps.googleusercontent.com';
 let setupColor=COLORS[0], settingsColor=COLORS[0];
 let D={}, R={}, regData=[], regFilter='all';
 let pinState={digits:[],targetIdx:-1,mode:'verify',firstPIN:''};
-let pinOpen=false; // flag fiable pour le handler clavier
+let pinOpen=false;        // overlay PIN visible
+let pinLoggingIn=false;   // en cours d'auth via PIN → bloquer showEntryPoint
 
 // ═══════════════════════════════════════════════════
 // INIT
@@ -1061,13 +1129,14 @@ async function init(){
     if(event==='INITIAL_SESSION') return;
     if(session?.user){
       authUser=session.user;
-      // Mettre à jour les tokens stockés localement à chaque refresh
       if(event==='TOKEN_REFRESHED'||event==='SIGNED_IN') updateStoredTokens(session.user.id,session);
-      await afterLogin();
+      // Ne pas re-déclencher afterLogin si le PIN vient de le faire
+      if(!pinLoggingIn) await afterLogin();
     } else {
-      authUser=null; profile=null; apiKey=null;
+      authUser=null; profile=null; apiKey=null; pdfCoKey=null;
       D={}; R={}; regData=[];
-      showEntryPoint(); // Quick Access ou Login selon les profils locaux
+      // Ne pas rediriger si on est en plein auth par PIN (SIGNED_OUT temporaire)
+      if(!pinLoggingIn) showEntryPoint();
     }
   });
   const {data:{session}}=await sb.auth.getSession();
@@ -1078,10 +1147,18 @@ async function init(){
 
 async function afterLogin(){
   try{
-    // maybeSingle() retourne null sans throw si la ligne n'existe pas encore
-    const {data,error}=await sb.from('app_settings').select('value').eq('key','anthropic_api_key').maybeSingle();
-    if(!error) apiKey=data?.value||null;
-  }catch(e){ apiKey=null; }
+    // Charger toutes les clés partagées en une seule requête
+    const {data,error}=await sb.from('app_settings')
+      .select('key,value')
+      .in('key',['anthropic_api_key','pdf_co_api_key','google_client_id']);
+    if(!error && data){
+      data.forEach(row=>{
+        if(row.key==='anthropic_api_key') apiKey=row.value||null;
+        if(row.key==='pdf_co_api_key')    pdfCoKey=row.value||null;
+        if(row.key==='google_client_id' && row.value) googleClientId=row.value;
+      });
+    }
+  }catch(e){ apiKey=null; pdfCoKey=null; }
   await loadProfile();
 }
 
@@ -1319,6 +1396,37 @@ function loadSettings(){
   settingsColor=profile.color||COLORS[0];
   renderCP('set-cpick',settingsColor,'settingsColor');
   showSt('st-set','','');
+  // Champs connexions
+  document.getElementById('set-drive').value=profile.drive_folder_id||'';
+  document.getElementById('set-normes').value=profile.normes_file_id||'';
+  document.getElementById('set-qb-token').value='';
+  document.getElementById('set-qb-token').placeholder=profile.qb_access_token?'••• Token configuré ✓':'eyJhbGciOi...';
+  document.getElementById('set-qb-realm').value=profile.qb_realm_id||'';
+  document.getElementById('set-qb-item').value=profile.qb_item_id||'';
+  // Statut Google
+  const gArea=document.getElementById('google-status-area');
+  if(profile.google_access_token && Date.now()<(profile.google_token_expiry||0)){
+    gArea.innerHTML=`<div class="st ok" style="margin-bottom:10px">✅ Compte Google connecté — ${sanitizeText(profile.email,60)}</div>`;
+  } else if(profile.google_access_token){
+    gArea.innerHTML=`<div class="st warn" style="margin-bottom:10px">⚠️ Token Google expiré — reconnecte ton compte.</div>`;
+  } else {
+    gArea.innerHTML=`<div class="st load" style="margin-bottom:10px"><div class="sp"></div><span>Compte Google non connecté</span></div>`;
+  }
+
+  // Section admin : visible seulement pour les Administrateurs
+  const adminCard=document.getElementById('admin-card');
+  if(profile.role==='Administrateur'){
+    adminCard.style.display='block';
+    const pdfInput=document.getElementById('set-pdfco');
+    pdfInput.value='';
+    pdfInput.placeholder=pdfCoKey?'••• Clé configurée ✓':'Entre ta clé PDF.co…';
+    const gcInput=document.getElementById('set-gclient');
+    gcInput.value='';
+    gcInput.placeholder=googleClientId?'••• Client ID configuré ✓':'123456789-abc.apps.googleusercontent.com';
+  } else {
+    adminCard.style.display='none';
+  }
+
   // Carte PIN : visible seulement si le profil est enregistré localement
   const qp=getQPByUser(authUser?.id);
   const pinCard=document.getElementById('pin-settings-card');
@@ -1349,9 +1457,12 @@ async function saveSettings(){
   if(!isValidEmail(cal)){ showSt('st-set','err','Format de courriel Google invalide.'); return; }
   showSt('st-set','load','Sauvegarde...');
   try{
+    const driveId=sanitizeText(gv('set-drive'),100)||null;
+    const normesId=sanitizeText(gv('set-normes'),100)||null;
     const upd={prenom:p,nom:n,email:e,
       role:document.getElementById('set-role').value,
-      color:settingsColor,cal_email:cal};
+      color:settingsColor,cal_email:cal,
+      drive_folder_id:driveId,normes_file_id:normesId};
     const {data,error}=await sb.from('profiles').update(upd).eq('user_id',authUser.id).select();
     if(error) throw error;
     profile={...profile,...(data?.[0]||upd)};
@@ -1478,7 +1589,13 @@ async function withRetry(fn, retries=1){
 // API CALL
 // ═══════════════════════════════════════════════════
 function _anthHeaders(extra={}){
-  return {'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01',...extra};
+  return {
+    'Content-Type':'application/json',
+    'x-api-key':apiKey,
+    'anthropic-version':'2023-06-01',
+    'anthropic-dangerous-direct-browser-access':'true', // requis pour appels depuis le navigateur
+    ...extra
+  };
 }
 function _parseContent(data){
   return (data.content||[]).map(b=>b.type==='text'?b.text:(b.content?.[0]?.text||'')).join('\n');
@@ -1617,7 +1734,7 @@ Retourne UNIQUEMENT ce JSON (sans markdown, sans explication) :
 }
 
 // ═══════════════════════════════════════════════════
-// LANCER TOUT — 2 actions (Calendar + Gmail)
+// LANCER TOUT — 9 actions complètes
 // ═══════════════════════════════════════════════════
 async function lancerTout(){
   D.batCP=sanitizeText(gv('r_bcp'),10)||D.batCP;
@@ -1629,7 +1746,14 @@ async function lancerTout(){
   setAP(3);
   const TASKS=[
     {id:'t1',ic:'📅',nm:'Google Calendar',sb:'Créer le rendez-vous'},
-    {id:'t2',ic:'📧',nm:'Gmail',sb:'Envoyer email client'}
+    {id:'t2',ic:'📁',nm:'Google Drive',sb:'Créer le dossier client'},
+    {id:'t3',ic:'💼',nm:'QuickBooks',sb:'Créer le client'},
+    {id:'t4',ic:'🧾',nm:'QuickBooks',sb:'Créer la facture'},
+    {id:'t5',ic:'📄',nm:'PDF.co',sb:'Remplir la convention'},
+    {id:'t6',ic:'📁',nm:'Google Drive',sb:'Enregistrer la convention'},
+    {id:'t7',ic:'📁',nm:'Google Drive',sb:'Copier les normes de pratique'},
+    {id:'t8',ic:'📁',nm:'Google Drive',sb:'Enregistrer la facture'},
+    {id:'t9',ic:'📧',nm:'Gmail',sb:'Envoyer l\'email client'},
   ];
   document.getElementById('tlog').innerHTML=TASKS.map(t=>`
     <div class="ti pend" id="${t.id}">
@@ -1639,53 +1763,265 @@ async function lancerTout(){
     </div>`).join('');
   R={};
   await runCal();
+  await runDriveFolder();
+  await runQBCustomer();
+  await runQBInvoice();
+  await runPDF();
+  await runDriveConvention();
+  await runDriveNormes();
+  await runDriveInvoice();
   await runMail();
   await saveRegistre();
 }
 
 const tR=id=>{const el=document.getElementById(id);el.className='ti run';el.querySelector('.ti-ic').innerHTML='<div class="ti-sp"></div>';el.lastElementChild.textContent='En cours...';};
 const tD=(id,m)=>{const el=document.getElementById(id);el.className='ti dn';el.querySelector('.ti-ic').textContent='✓';el.lastElementChild.textContent=m||'Complété';};
-const tE=(id,m)=>{const el=document.getElementById(id);el.className='ti er';el.querySelector('.ti-ic').textContent='✗';el.lastElementChild.textContent=(m||'Erreur').substring(0,50);};
+const tE=(id,m)=>{const el=document.getElementById(id);el.className='ti er';el.querySelector('.ti-ic').textContent='✗';el.lastElementChild.textContent=(m||'Erreur').substring(0,60);};
 
-// FIX : sanitizeText sur les valeurs utilisateur dans le prompt
+// ─── t1 : Google Calendar (API directe) ───────────
 async function runCal(){tR('t1');try{
-  await callC(`Crée un événement Google Calendar:
-- Titre: "Rendez-vous confirmé : inspection pré achat"
-- Début: ${D.dateISO}, Fin: ${D.dateFinISO}
-- Lieu: ${sanitizeText(D.batAdresse,300)}
-- Participant: ${sanitizeText(D.email,254)}
-- Couleur: 7
-- Description: "Inspection — ${sanitizeText(D.a1,150)}. Prix: ${sanitizeText(D.prix,10)}$. Représentant: ${sanitizeText(D.rp,100)} ${sanitizeText(D.rn,100)}"
-- Calendrier: ${sanitizeText(D.calEmail,254)}`,[{type:'url',url:MCP_CAL,name:'calendar-mcp'}]);
-  R.cal=true;tD('t1',D.dateAffichage);}catch(e){tE('t1',e.message);}}
+  const tok=getGToken();
+  const event={
+    summary:'Rendez-vous confirmé : inspection pré achat',
+    location:sanitizeText(D.batAdresse,300),
+    description:`Inspection — ${sanitizeText(D.a1,150)}. Prix: ${sanitizeText(D.prix,10)}$. Représentant: ${sanitizeText(D.rp,100)} ${sanitizeText(D.rn,100)}`,
+    start:{dateTime:D.dateISO},end:{dateTime:D.dateFinISO},
+    attendees:[{email:D.email}],colorId:'7'
+  };
+  await fetchJSON(`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(D.calEmail)}/events`,{
+    method:'POST',
+    headers:{'Authorization':'Bearer '+tok,'Content-Type':'application/json'},
+    body:JSON.stringify(event)
+  });
+  R.cal=true;tD('t1',D.dateAffichage);
+}catch(e){tE('t1',e.message);}}
 
-// FIX Injection HTML email : sanitizeText sur toutes les valeurs utilisateur
-// dans le corps HTML de l'email envoyé au client.
-async function runMail(){tR('t2');try{
+// ─── t2 : Google Drive — Créer dossier client ─────
+async function runDriveFolder(){tR('t2');try{
+  const tok=getGToken();
+  const parentId=profile.drive_folder_id;
+  if(!parentId) throw new Error('ID dossier "Documents Clients" manquant — configure dans Paramètres');
+  const res=await fetchJSON('https://www.googleapis.com/drive/v3/files',{
+    method:'POST',
+    headers:{'Authorization':'Bearer '+tok,'Content-Type':'application/json'},
+    body:JSON.stringify({name:sanitizeText(D.batAdresse,100),mimeType:'application/vnd.google-apps.folder',parents:[parentId]})
+  });
+  R.driveFolderId=res.id;
+  tD('t2','Dossier créé');
+}catch(e){tE('t2',e.message);}}
+
+// ─── t3 : QuickBooks — Créer client ───────────────
+async function runQBCustomer(){tR('t3');try{
+  const{token,realmId}=getQBCreds();
+  const base=`https://quickbooks.api.intuit.com/v3/company/${realmId}`;
+  let customerId;
+  try{
+    const r=await fetchJSON(`${base}/customer?minorversion=70`,{
+      method:'POST',
+      headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json','Accept':'application/json'},
+      body:JSON.stringify({Customer:{
+        DisplayName:sanitizeText(D.a1,150),
+        PrimaryEmailAddr:{Address:D.email},
+        PrimaryPhone:{FreeFormNumber:sanitizeText(D.tel||'',20)},
+        BillAddr:{Line1:sanitizeText(D.clientAdresse||D.batAdresse,300)}
+      }})
+    });
+    customerId=r.Customer.Id;
+  }catch{
+    const q=`SELECT * FROM Customer WHERE PrimaryEmailAddr = '${D.email.replace(/'/g,"''")}'`;
+    const r=await fetchJSON(`${base}/query?query=${encodeURIComponent(q)}&minorversion=70`,{
+      headers:{'Authorization':'Bearer '+token,'Accept':'application/json'}
+    });
+    const list=r.QueryResponse?.Customer;
+    if(!list?.length) throw new Error('Impossible de créer ou trouver le client QB');
+    customerId=list[0].Id;
+  }
+  R.qbCustomerId=customerId;
+  tD('t3','Client #'+customerId);
+}catch(e){tE('t3',e.message);}}
+
+// ─── t4 : QuickBooks — Créer facture ──────────────
+async function runQBInvoice(){tR('t4');try{
+  if(!R.qbCustomerId) throw new Error('Client QB manquant (étape précédente échouée)');
+  const{token,realmId}=getQBCreds();
+  const res=await fetchJSON(`https://quickbooks.api.intuit.com/v3/company/${realmId}/invoice?minorversion=70`,{
+    method:'POST',
+    headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json','Accept':'application/json'},
+    body:JSON.stringify({Invoice:{
+      CustomerRef:{value:R.qbCustomerId},
+      BillEmail:{Address:D.email},
+      BillEmailCc:{Address:sanitizeText(profile.email,254)},
+      BillAddr:{Line1:sanitizeText(D.clientAdresse||D.batAdresse,300)},
+      TxnDate:D.date,
+      DueDate:D.date,
+      ServiceDate:D.date,
+      GlobalTaxCalculation:'TaxExcluded',
+      AllowOnlineCreditCardPayment:true,
+      AllowOnlineACHPayment:true,
+      Line:[{
+        Amount:parseFloat(D.prix),
+        DetailType:'SalesItemLineDetail',
+        Description:'Inspection de Bâtiment résidentiel',
+        SalesItemLineDetail:{
+          Qty:1,
+          UnitPrice:parseFloat(D.prix),
+          ItemRef:{value:profile.qb_item_id||'1'},
+          TaxCodeRef:{value:'7'}
+        }
+      }]
+    }})
+  });
+  R.qbInvoiceId=res.Invoice.Id;
+  R.qbInvoicePdfUrl=`https://quickbooks.api.intuit.com/v3/company/${realmId}/invoice/${R.qbInvoiceId}/pdf?minorversion=70`;
+  tD('t4','Facture #'+R.qbInvoiceId);
+}catch(e){tE('t4',e.message);}}
+
+// ─── t5 : PDF.co — Remplir convention ─────────────
+async function runPDF(){tR('t5');try{
+  if(!pdfCoKey) throw new Error('Clé PDF.co non configurée — va dans Paramètres → Administration.');
+  const fields=[
+    {fieldName:'Acheteur1',         value:sanitizeText(D.a1,150)},
+    {fieldName:'Acheteur2',         value:sanitizeText(D.a2||'N/A',150)},
+    {fieldName:'ClientNum',         value:sanitizeText(D.clientNum,20)},
+    {fieldName:'ClientRue',         value:sanitizeText(D.clientRue,200)},
+    {fieldName:'ClientApp',         value:sanitizeText(D.clientApp||'N/A',20)},
+    {fieldName:'ClientVille',       value:sanitizeText(D.clientVille,100)},
+    {fieldName:'ClientCP',          value:sanitizeText(D.clientCP,10)},
+    {fieldName:'Representant',      value:sanitizeText(`${D.rp} ${D.rn}`,100)},
+    {fieldName:'BatNum',            value:sanitizeText(D.batNum,20)},
+    {fieldName:'BatRue',            value:sanitizeText(D.batRue,200)},
+    {fieldName:'BatApp',            value:sanitizeText(D.batApp||'N/A',20)},
+    {fieldName:'BatVille',          value:sanitizeText(D.batVille,100)},
+    {fieldName:'BatCP',             value:sanitizeText(D.batCP,10)},
+    {fieldName:'AnneeConstruction', value:sanitizeText(D.ageConstruction||'N/A',4)},
+    {fieldName:'Jour',              value:D.jour},
+    {fieldName:'Mois',              value:D.mois},
+    {fieldName:'Annee',             value:D.annee},
+    {fieldName:'Heure',             value:`${D.heure} ${D.ampm}`},
+    {fieldName:'Prix',              value:D.prix+'$'},
+  ];
+  const res=await fetchJSON('https://api.pdf.co/v1/pdf/fill',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','x-api-key':pdfCoKey},
+    body:JSON.stringify({url:'https://drive.google.com/uc?export=download&id=1djs1dO9NiO1lmM0pVOymXR9mewHbBf6B',fields,name:sanitizeText(D.batAdresse,100)+'.pdf',async:false,encrypt:false})
+  });
+  if(res.error) throw new Error(res.message||'Erreur PDF.co');
+  R.pdf=res.url;
+  tD('t5','Convention générée');
+}catch(e){tE('t5',e.message);}}
+
+// ─── Helper : upload blob vers Google Drive + partage public ──
+async function uploadBlobToDrive(tok,blob,fileName,folderId){
+  const form=new FormData();
+  form.append('metadata',new Blob([JSON.stringify({name:fileName,parents:[folderId]})],{type:'application/json'}));
+  form.append('file',blob,fileName);
+  const res=await fetchJSON('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,webViewLink,webContentLink',{
+    method:'POST',headers:{'Authorization':'Bearer '+tok},body:form
+  },60000);
+  // Partager "anyone with link → reader" pour que le client puisse ouvrir les liens
+  await gDriveSetPublic(tok,res.id);
+  return res;
+}
+
+// Rend un fichier Drive lisible par quiconque possède le lien
+async function gDriveSetPublic(tok,fileId){
+  try{
+    await fetch(`https://www.googleapis.com/drive/v3/files/${encodeURIComponent(fileId)}/permissions`,{
+      method:'POST',
+      headers:{'Authorization':'Bearer '+tok,'Content-Type':'application/json'},
+      body:JSON.stringify({role:'reader',type:'anyone'})
+    });
+  }catch{}
+}
+
+// ─── t6 : Drive — Upload convention PDF ───────────
+async function runDriveConvention(){tR('t6');try{
+  if(!R.pdf) throw new Error('Convention PDF non générée (étape t5)');
+  if(!R.driveFolderId) throw new Error('Dossier Drive non créé (étape t2)');
+  const tok=getGToken();
+  const resp=await fetch(R.pdf);
+  if(!resp.ok) throw new Error('Impossible de télécharger la convention depuis PDF.co');
+  const blob=await resp.blob();
+  const res=await uploadBlobToDrive(tok,blob,`Convention de service — ${sanitizeText(D.a1,80)}.pdf`,R.driveFolderId);
+  R.driveConventionId=res.id;R.driveConventionLink=res.webViewLink;
+  tD('t6','Convention enregistrée');
+}catch(e){tE('t6',e.message);}}
+
+// ─── t7 : Drive — Copier normes de pratique ───────
+async function runDriveNormes(){tR('t7');try{
+  if(!R.driveFolderId) throw new Error('Dossier Drive non créé (étape t2)');
+  if(!profile.normes_file_id) throw new Error('ID fichier Normes non configuré — va dans Paramètres');
+  const tok=getGToken();
+  const res=await fetchJSON(`https://www.googleapis.com/drive/v3/files/${encodeURIComponent(profile.normes_file_id)}/copy?fields=id,webViewLink,webContentLink`,{
+    method:'POST',headers:{'Authorization':'Bearer '+tok,'Content-Type':'application/json'},
+    body:JSON.stringify({name:'Normes de pratiques.pdf',parents:[R.driveFolderId]})
+  });
+  R.driveNormesId=res.id;R.driveNormesLink=res.webViewLink;
+  // Partager publiquement pour que le lien fonctionne dans l'email
+  await gDriveSetPublic(tok,res.id);
+  tD('t7','Normes copiées');
+}catch(e){tE('t7',e.message);}}
+
+// ─── t8 : Drive — Upload facture QuickBooks ───────
+async function runDriveInvoice(){tR('t8');try{
+  if(!R.qbInvoiceId) throw new Error('Facture QB non créée (étape t4)');
+  if(!R.driveFolderId) throw new Error('Dossier Drive non créé (étape t2)');
+  const{token}=getQBCreds();
+  const tok=getGToken();
+  const qbResp=await fetch(R.qbInvoicePdfUrl,{headers:{'Authorization':'Bearer '+token,'Accept':'application/pdf'}});
+  if(!qbResp.ok) throw new Error(`Impossible de récupérer la facture QB (HTTP ${qbResp.status})`);
+  const blob=await qbResp.blob();
+  const res=await uploadBlobToDrive(tok,blob,'Invoice.pdf',R.driveFolderId);
+  R.driveInvoiceId=res.id;R.driveInvoiceLink=res.webViewLink;
+  tD('t8','Facture enregistrée');
+}catch(e){tE('t8',e.message);}}
+
+// ─── t9 : Gmail (API directe) ─────────────────────
+async function runMail(){tR('t9');try{
+  const tok=getGToken();
   const pn=sanitizeText(D.a1?.split(' ')[0]||'',50);
   const safeDate=sanitizeText(D.dateAffichage,100);
   const safeAddr=sanitizeText(D.batAdresse,300);
   const safeRep=sanitizeText(`${D.rp} ${D.rn}`,150);
   const safeRepEmail=sanitizeText(D.repEmail,254);
+  const conventionLink=R.driveConventionLink||R.pdf||'';
+  const normesLink=R.driveNormesLink||'';
+  const invoiceLink=R.driveInvoiceLink||'';
+  const mkLink=(href,label)=>href?`<a href="${href}">${label}</a>`:label;
   const html=`<div style="font-family:Arial,sans-serif;max-width:600px;color:#333;line-height:1.7">
-<p>Bonjour ${pn},</p><p>Veuillez accuser réception des documents.</p>
-<p>Vous trouverez ci-joint :</p>
-<ol><li>La <b>convention de service</b> (signée lors de l'inspection) ;</li>
-<li>La <b>facture</b>, payable le jour de l'inspection ;</li>
-<li>Les <b>normes de pratique</b> IBC.</li></ol>
-<p>⚠️ Frais de <b>100 $</b> si annulation à moins de 24h.</p>
+<p>Bonjour ${pn},</p>
+<p>Veuillez accuser réception des documents.</p>
+<p>Merci encore pour votre demande d'inspection. Vous trouverez ci-joint les documents suivants :</p>
+<ol>
+<li>${mkLink(conventionLink,'La <b>convention de service</b>')} pour prise de connaissance (elle sera signée lors de l\'inspection) ;</li>
+<li>${mkLink(invoiceLink,'La <b>facture</b>')}, payable le jour de l\'inspection ;</li>
+<li>${mkLink(normesLink,'Les <b>normes de pratique</b>')} des inspecteurs du réseau IBC.</li>
+</ol>
+<p>⚠️ Veuillez noter que des frais de <b>100 $</b> seront applicables en cas d'annulation à moins de 24 heures de l'inspection.</p>
+<p>Si vous avez des questions, n'hésitez pas à me contacter.</p>
+<p>Le paiement peut être effectué par <b>virement Interac, débit ou crédit</b> lors de l'inspection.</p>
 <p>📅 <b>Rendez-vous :</b> ${safeDate}<br>📍 <b>Adresse :</b> ${safeAddr}</p>
-<p>Paiement par <b>Interac, débit ou crédit</b>.<br><br>
-<b>${safeRep}</b><br><span style="color:#555;font-size:13px">Inspecteur certifié · Kalité Inspection</span><br>
+<p>Au plaisir de vous rencontrer. Merci et bonne journée !</p>
+<p><b>${safeRep}</b><br>
+<span style="color:#555;font-size:13px">Inspecteur en bâtiment certifié · Kalité Inspection</span><br>
 <a href="mailto:${safeRepEmail}">${safeRepEmail}</a></p></div>`;
-  await callC(`Gmail MCP — envoyer email:
-À: ${sanitizeText(D.email,254)}, CC: ${sanitizeText(D.repEmail,254)}
-Sujet: "Rendez-vous confirmé : inspection pré achat"
-HTML: ${html}
-Label: IMPORTANT`,[{type:'url',url:MCP_GMAIL,name:'gmail-mcp'}]);
-  R.mail=true;tD('t2',D.email);
+  const raw=buildMimeRaw(D.email,profile.email,profile.email,'Rendez-vous confirmé : inspection pré achat',html);
+  await fetchJSON('https://www.googleapis.com/gmail/v1/users/me/messages/send',{
+    method:'POST',headers:{'Authorization':'Bearer '+tok,'Content-Type':'application/json'},
+    body:JSON.stringify({raw})
+  },45000);
+  R.mail=true;tD('t9',D.email);
   setTimeout(()=>{buildSum();setAP(4);},700);
-}catch(e){tE('t2',e.message);showSt('st3','warn','Email non envoyé auto — le rendez-vous calendrier est quand même créé.');setTimeout(()=>{buildSum();setAP(4);},1000);}}
+}catch(e){tE('t9',e.message);showSt('st3','warn','Email non envoyé — les autres étapes sont quand même complétées.');setTimeout(()=>{buildSum();setAP(4);},1000);}}
+
+function buildMimeRaw(to,cc,from,subject,htmlBody){
+  const enc=new TextEncoder();
+  const u8b64=bytes=>{let s='';const c=8192;for(let i=0;i<bytes.length;i+=c)s+=String.fromCharCode(...bytes.subarray(i,Math.min(i+c,bytes.length)));return btoa(s);};
+  const subB64='=?UTF-8?B?'+u8b64(enc.encode(subject))+'?=';
+  const bodyB64=u8b64(enc.encode(htmlBody));
+  const msg=['MIME-Version: 1.0',`From: ${from}`,`To: ${to}`,cc?`Cc: ${cc}`:'',`Subject: ${subB64}`,'Content-Type: text/html; charset=UTF-8','Content-Transfer-Encoding: base64','',bodyB64].filter(Boolean).join('\r\n');
+  return u8b64(enc.encode(msg)).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+}
 
 // ═══════════════════════════════════════════════════
 // QUICK ACCESS — Profils locaux + accès par PIN
@@ -1749,9 +2085,9 @@ function showEntryPoint(){
     // 1 seul profil → PIN pad direct, sans étape galerie
     const p=qps[0];
     if(p.pin_hash){
-      // Afficher brièvement la page quick pour le fond, puis ouvrir le PIN
       showQuickAccess();
-      setTimeout(()=>showPinEntry(0,'verify'),80);
+      // Garde : n'ouvre le PIN que si l'utilisateur n'est pas déjà authentifié
+      setTimeout(()=>{ if(!authUser && !pinLoggingIn) showPinEntry(0,'verify'); },80);
     } else {
       showQuickAccess(); // pas encore de PIN → montrer galerie pour inviter à configurer
     }
@@ -1920,19 +2256,39 @@ async function verifyPINAndLogin(idx,pin){
   saveQuickProfiles(arr);
   document.getElementById('pin-msg').style.color='#86EFAC';
   document.getElementById('pin-msg').textContent='✓ Connexion...';
+  pinLoggingIn=true;
   try{
-    const {error}=await sb.auth.setSession({
+    const {data:sd, error}=await sb.auth.setSession({
       access_token:p.access_token,
       refresh_token:p.refresh_token
     });
     if(error) throw error;
+
+    // Mettre à jour les tokens avec la nouvelle session retournée
+    if(sd?.session){
+      updateStoredTokens(p.user_id, sd.session);
+      authUser=sd.session.user;
+    }
+
     pinOpen=false;
-  document.getElementById('pin-overlay').style.display='none';
-    // onAuthStateChange → afterLogin() prend le relais
-  }catch(e){
+    pinLoggingIn=false;
     document.getElementById('pin-overlay').style.display='none';
+
+    // Appel direct — ne pas attendre onAuthStateChange qui peut ne pas se déclencher
+    await afterLogin();
+
+  }catch(e){
+    pinLoggingIn=false;
+    pinOpen=false;
+    document.getElementById('pin-overlay').style.display='none';
+
+    // Tokens expirés → retirer du localStorage, forcer un vrai login
+    const arr=getQuickProfiles();
+    const idx2=arr.findIndex(pr=>pr.user_id===p.user_id);
+    if(idx2!==-1){ arr[idx2].access_token=''; arr[idx2].refresh_token=''; saveQuickProfiles(arr); }
+
     showAuth();
-    showSt('st-auth','warn','Session expirée — reconnecte-toi pour réactiver l\'accès rapide.');
+    showSt('st-auth','warn','Session expirée — entre ton courriel et ton mot de passe une fois pour réactiver l\'accès rapide.');
   }
 }
 
@@ -1984,6 +2340,34 @@ function activatePinFromBanner(){
   showPinEntry(idx,'setup');
 }
 
+/* ── Administration — Clés partagées ── */
+async function saveAdminSettings(){
+  const pdfKey=(document.getElementById('set-pdfco').value||'').trim();
+  const gclientKey=(document.getElementById('set-gclient').value||'').trim();
+  if(!pdfKey&&!gclientKey){showSt('st-admin','err','Entre au moins une valeur à sauvegarder.');return;}
+  showSt('st-admin','load','Sauvegarde en cours...');
+  try{
+    const upsertKey=async(key,val)=>{
+      const{data:ex}=await sb.from('app_settings').select('id').eq('key',key).maybeSingle();
+      if(ex?.id) await sb.from('app_settings').update({value:val}).eq('key',key);
+      else await sb.from('app_settings').insert([{key,value:val}]);
+    };
+    if(pdfKey){
+      await upsertKey('pdf_co_api_key',pdfKey);
+      pdfCoKey=pdfKey;
+      document.getElementById('set-pdfco').value='';
+      document.getElementById('set-pdfco').placeholder='••• Clé mise à jour ✓';
+    }
+    if(gclientKey){
+      await upsertKey('google_client_id',gclientKey);
+      googleClientId=gclientKey;
+      document.getElementById('set-gclient').value='';
+      document.getElementById('set-gclient').placeholder='••• Client ID configuré ✓';
+    }
+    showSt('st-admin','ok','✅ Clés sauvegardées — tous les inspecteurs y ont accès.');
+  }catch(e){showSt('st-admin','err','Erreur: '+e.message);}
+}
+
 /* ── PIN — Gestion depuis les paramètres ── */
 function startChangePinFlow(){
   const arr=getQuickProfiles();
@@ -2033,6 +2417,8 @@ async function saveRegistre(){
       date_inspection:sanitizeText(D.dateAffichage,100),
       prix:D.prix,
       statut_calendrier:R.cal||false,
+      statut_pdf:!!(R.driveConventionId||R.pdf),
+      convention_url:R.driveConventionLink||R.pdf||null,
       statut_email:R.mail||false
     }]);
   }catch(e){console.warn('Registre:',e.message);}
@@ -2083,6 +2469,7 @@ function renderRegistre(){
   list.innerHTML=data.map((r,i)=>{
     const badges=[
       {l:'📅 Cal.',ok:r.statut_calendrier},
+      {l:'📋 PDF',ok:r.statut_pdf},
       {l:'📧 Email',ok:r.statut_email}
     ];
     let dt='—';
@@ -2100,6 +2487,7 @@ function renderRegistre(){
       <div class="reg-detail" id="rd-${i}">
         <div style="font-size:11.5px;color:var(--muted2);line-height:1.9">
           <div>📧 ${escHTML(r.client_email||'—')} · 📞 ${escHTML(r.client_tel||'—')}</div>
+          ${r.convention_url?`<a href="${escHTML(r.convention_url)}" target="_blank" rel="noopener" style="color:var(--accent);font-size:12px;display:block;margin-top:6px">📋 Voir la convention PDF</a>`:''}
         </div>
       </div>
     </div>`;
@@ -2111,9 +2499,9 @@ function toggleReg(id){const el=document.getElementById(id);if(el)el.classList.t
 // ═══════════════════════════════════════════════════
 // SUCCESS SUMMARY & RESET
 // ═══════════════════════════════════════════════════
-// FIX XSS : escHTML sur toutes les valeurs D.*
 function buildSum(){
   const ck=v=>v?'✅':'⚠️ Vérifier';
+  const lnk=(href,label)=>href?`<a href="${escHTML(href)}" target="_blank" rel="noopener" style="color:var(--accent)">✅ ${label}</a>`:`⚠️ Non créé`;
   document.getElementById('summ').innerHTML=[
     ['Client',escHTML(D.a1+(D.a2&&D.a2!=='N/A'?' & '+D.a2:''))],
     ['Courriel',escHTML(D.email)],
@@ -2123,6 +2511,12 @@ function buildSum(){
     ['Fuseau',escHTML(D.tzOff+' (Mtl)')],
     ['Prix',escHTML(D.prix+'$')],
     ['📅 Calendrier',ck(R.cal)],
+    ['📁 Dossier Drive',R.driveFolderId?'✅ Créé':'⚠️ Non créé'],
+    ['💼 QB Client',R.qbCustomerId?`✅ #${escHTML(R.qbCustomerId)}`:'⚠️ Non créé'],
+    ['🧾 QB Facture',R.qbInvoiceId?`✅ #${escHTML(R.qbInvoiceId)}`:'⚠️ Non créée'],
+    ['📄 Convention',lnk(R.driveConventionLink||R.pdf,'Voir le PDF')],
+    ['📄 Normes',lnk(R.driveNormesLink,'Voir les normes')],
+    ['🧾 Facture Drive',lnk(R.driveInvoiceLink,'Voir la facture')],
     ['📧 Email',ck(R.mail)],
   ].map(([k,v])=>`<div class="sumr"><span class="sumk">${k}</span><span>${v||'—'}</span></div>`).join('');
 }
@@ -2139,6 +2533,72 @@ function resetApp(){
   document.getElementById('btnA').disabled=false;
   if(document.getElementById('btnL')) document.getElementById('btnL').disabled=false;
   showSt('st1','',''); showSt('st2','',''); setAP(1);
+}
+
+// ═══════════════════════════════════════════════════
+// GOOGLE OAUTH — Connexion compte Google
+// ═══════════════════════════════════════════════════
+function connectGoogle(){
+  if(!googleClientId){showSt('st-google','err','Client ID Google non configuré — un administrateur doit l\'ajouter dans Paramètres → Administration.');return;}
+  const scopes=[
+    'https://www.googleapis.com/auth/calendar',
+    'https://www.googleapis.com/auth/drive',
+    'https://www.googleapis.com/auth/gmail.send'
+  ].join(' ');
+  try{
+    const client=google.accounts.oauth2.initTokenClient({
+      client_id:googleClientId,scope:scopes,
+      callback:async resp=>{
+        if(resp.error){showSt('st-google','err','Connexion annulée: '+resp.error);return;}
+        showSt('st-google','load','Sauvegarde du token...');
+        const expiry=Date.now()+(parseInt(resp.expires_in||3600)*1000);
+        try{
+          const{data,error}=await sb.from('profiles')
+            .update({google_access_token:resp.access_token,google_token_expiry:expiry})
+            .eq('user_id',authUser.id).select();
+          if(error)throw error;
+          profile.google_access_token=resp.access_token;
+          profile.google_token_expiry=expiry;
+          loadSettings();
+          showSt('st-google','ok','✅ Compte Google connecté — Calendar, Drive et Gmail sont prêts !');
+        }catch(e){showSt('st-google','err','Erreur sauvegarde: '+e.message);}
+      }
+    });
+    client.requestAccessToken();
+  }catch(e){showSt('st-google','err','Erreur Google Auth: '+e.message);}
+}
+
+// ═══════════════════════════════════════════════════
+// QUICKBOOKS — Sauvegarder identifiants
+// ═══════════════════════════════════════════════════
+async function saveQBSettings(){
+  const token=(document.getElementById('set-qb-token').value||'').trim();
+  const realm=(document.getElementById('set-qb-realm').value||'').trim();
+  const itemId=(document.getElementById('set-qb-item').value||'').trim();
+  if(!realm){showSt('st-qb','err','Le Company ID (Realm ID) est requis.');return;}
+  showSt('st-qb','load','Sauvegarde...');
+  const upd={qb_realm_id:realm,qb_item_id:itemId||'1'};
+  if(token) upd.qb_access_token=token;
+  const{data,error}=await sb.from('profiles').update(upd).eq('user_id',authUser.id).select();
+  if(error){showSt('st-qb','err','Erreur: '+error.message);return;}
+  profile={...profile,...(data?.[0]||upd)};
+  document.getElementById('set-qb-token').value='';
+  document.getElementById('set-qb-token').placeholder='••• Token configuré ✓';
+  showSt('st-qb','ok','✅ QuickBooks configuré ! ⚠️ Le token expire après 1h — renouvelle-le si besoin.');
+}
+
+// ═══════════════════════════════════════════════════
+// TOKENS — Helpers API
+// ═══════════════════════════════════════════════════
+function getGToken(){
+  if(!profile?.google_access_token) throw new Error('Compte Google non connecté — va dans Paramètres → Connecter mon compte Google');
+  if(profile.google_token_expiry&&Date.now()>Number(profile.google_token_expiry)) throw new Error('Token Google expiré — reconnecte ton compte dans Paramètres');
+  return profile.google_access_token;
+}
+function getQBCreds(){
+  if(!profile?.qb_access_token) throw new Error('Token QuickBooks non configuré — va dans Paramètres → QuickBooks');
+  if(!profile?.qb_realm_id) throw new Error('Company ID QuickBooks manquant — configure-le dans Paramètres');
+  return{token:profile.qb_access_token,realmId:profile.qb_realm_id};
 }
 
 // ═══════════════════════════════════════════════════
