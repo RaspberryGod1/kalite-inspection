@@ -1124,7 +1124,14 @@ let pinLoggingIn=false;   // en cours d'auth via PIN → bloquer showEntryPoint
 // On ignore INITIAL_SESSION dans le listener.
 // ═══════════════════════════════════════════════════
 async function init(){
-  sb=window.supabase.createClient(SURL,SKEY);
+  // Toutes les requêtes internes du client Supabase (token refresh, PostgREST)
+  // abandonnent après 5s si le serveur est inaccessible, évitant l'écran blanc.
+  const _sbFetch=(url,opts={})=>{
+    const ctrl=new AbortController();
+    const tid=setTimeout(()=>ctrl.abort(),5000);
+    return fetch(url,{...opts,signal:ctrl.signal}).finally(()=>clearTimeout(tid));
+  };
+  sb=window.supabase.createClient(SURL,SKEY,{global:{fetch:_sbFetch}});
   sb.auth.onAuthStateChange(async(event,session)=>{
     if(event==='INITIAL_SESSION') return;
     if(session?.user){
@@ -1139,7 +1146,7 @@ async function init(){
       if(!pinLoggingIn) showEntryPoint();
     }
   });
-  const {data:{session}}=await sb.auth.getSession();
+  const {data:{session}}=await sb.auth.getSession().catch(()=>({data:{session:null}}));
   if(session?.user){ authUser=session.user; await afterLogin(); }
   else showEntryPoint();
   renderCP('sw-cpick',COLORS[0],'setupColor');
