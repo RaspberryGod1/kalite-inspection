@@ -636,6 +636,13 @@ select.fv option{background:#121929;}
 </head>
 <body>
 
+<!-- LOADING SCREEN — visible immédiatement, masqué dès que l'app est prête -->
+<div id="pg-loading" style="position:fixed;inset:0;background:#070a13;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;">
+  <img src="logo.svg" style="width:180px;filter:brightness(0) invert(1);opacity:.85;display:block;">
+  <div style="width:32px;height:32px;border:3px solid rgba(100,181,246,.12);border-top-color:#64B5F6;border-radius:50%;animation:spin .7s linear infinite;"></div>
+  <p style="font-size:12px;color:#48527a;font-family:'DM Sans',sans-serif;letter-spacing:.5px;">Chargement…</p>
+</div>
+
 <header>
   <div class="logo">
     <img src="logo.svg" class="header-logo" alt="Kalité Inspection">
@@ -1219,6 +1226,8 @@ function showMainApp(){
 }
 
 function hideAll(){
+  const ld=document.getElementById('pg-loading');
+  if(ld) ld.style.display='none';
   document.getElementById('pg-auth').style.display='none';
   document.getElementById('pg-quick').style.display='none';
   document.querySelectorAll('.pg').forEach(p=>p.classList.remove('on'));
